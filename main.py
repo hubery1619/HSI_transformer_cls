@@ -62,8 +62,8 @@ if __name__ == "__main__":
         train_set = HSIDataset(image, train_gt, patch_size=opts.patch_size, data_aug=True)
         val_set = HSIDataset(image, val_gt, patch_size=opts.patch_size, data_aug=False)
 
-        train_loader = torch.utils.data.DataLoader(train_set, opts.bs, drop_last=False, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(val_set, opts.bs, drop_last=False, shuffle=False)
+        train_loader = torch.utils.data.DataLoader(train_set, opts.bs, drop_last=True, shuffle=True)
+        val_loader = torch.utils.data.DataLoader(val_set, opts.bs, drop_last=True, shuffle=False)
 
         # load model and loss
         model = get_model(opts.model, opts.dataset_name, opts.patch_size)
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             split_info_print(train_gt, val_gt, test_gt, labels)
             print("network information:")
             with torch.no_grad():
-                summary(model, torch.zeros((1, 1, num_bands, opts.patch_size, opts.patch_size)))
+                summary(model, torch.zeros((3, 1, num_bands, opts.patch_size, opts.patch_size)))
         
         model = model.to(device)
         

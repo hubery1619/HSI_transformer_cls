@@ -14,6 +14,7 @@ python == 3.7.9, cuda == 11.1, and packages in `requirements.txt`
 
 Download following datasets:
 
+- [Houston (HU)](https://hyperspectral.ee.uh.edu/?page_id=459)
 - [Salinas (SA)](https://www.ehu.eus/ccwintco/index.php/Hyperspectral_Remote_Sensing_Scenes)
 
 - [Pavia University (PU)](https://www.ehu.eus/ccwintco/index.php/Hyperspectral_Remote_Sensing_Scenes)
@@ -47,6 +48,7 @@ Train our proposed GAHT using train-val-test split ratios in the paper:
 ### For the SA/PU/WHU-LK Dataset:
 
 ```bash
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.02
 python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.02
 python main.py --model proposed --dataset_name pu --epoch 300 --bs 64 --device 0 --ratio 0.02
 python main.py --model proposed --dataset_name whulk --epoch 300 --bs 64 --device 0 --ratio 0.01

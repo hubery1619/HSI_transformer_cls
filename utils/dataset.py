@@ -14,6 +14,7 @@ def load_mat_hsi(dataset_name, dataset_dir):
         'pu',
         'whulk',
         'hrl',
+        'hu'
     ]
     assert dataset_name in available_sets, "dataset should be one of" + ' ' + str(available_sets)
 
@@ -47,6 +48,34 @@ def load_mat_hsi(dataset_name, dataset_dir):
         ]
         rgb_bands = [0, 1, 2]  # to be edited
         undefined_label_index = 0
+
+
+    elif (dataset_name == 'hu'):
+        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "HU_cube.mat"))
+        image = image['HU_cube']
+        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "gt.mat"))
+        gt = gt['gt']
+        labels = [
+            "Undefined",
+            "Healthy grass",
+            "Stressed grass",
+            "Synthetic grass",
+            "Trees",
+            "Soil",
+            "Water",
+            "Residential",
+            "Commercial",
+            "Road",
+            "Highway",
+            "Railway",
+            "Parking Lot 1",
+            "Parking Lot 2",
+            "Tennis Court",
+            "Running Track",
+        ]
+        rgb_bands = [0, 1, 2]  # to be edited
+        undefined_label_index = 0
+
 
     elif (dataset_name == 'pu'):
         image = io.loadmat(os.path.join(dataset_dir, dataset_name, "PaviaU.mat"))

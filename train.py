@@ -55,8 +55,9 @@ def validation(network, val_loader, device):
 
 
 def test(network, model_dir, image, patch_size, n_classes, device):
-    network.load_state_dict(torch.load(model_dir + "/model_best.pth"))
     network.eval()
+    network.load_state_dict(torch.load(model_dir + "/model_best.pth"))
+
 
     patch_size = patch_size
     batch_size = 64
