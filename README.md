@@ -48,7 +48,7 @@ Train our proposed GAHT using train-val-test split ratios in the paper:
 ### For the SA/PU/WHU-LK Dataset:
 
 ```bash
-python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.02
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1
 python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.02
 python main.py --model proposed --dataset_name pu --epoch 300 --bs 64 --device 0 --ratio 0.02
 python main.py --model proposed --dataset_name whulk --epoch 300 --bs 64 --device 0 --ratio 0.01
