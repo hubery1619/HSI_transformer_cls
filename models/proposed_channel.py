@@ -102,6 +102,33 @@ class Block(nn.Module):
         x = x + self.mlp(self.norm2(x))
         return x
 
+class ChannelBlock(nn.Module):
+    def __init__(self, dim_channel, num_heads, patch_size, mlp_ratio=4, drop=0., attn_drop=0.):
+        super().__init__()
+        dim = patch_size*patch_size
+        self.head_channel = dim_channel
+        self.per_channel = 16
+        num_heads = self.head_channel/self.per_channel
+        self.norm1 = nn.LayerNorm(dim)
+        self.attn = Attention(dim, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, drop=drop)
+
+    def forward(self, x):
+        x = x.transpose(1, 2)
+        B_channel, N_channel, C_channel = x.shape
+        x = x.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        x = x.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)
+        x = x + self.attn(self.norm1(x))
+        x = x + self.mlp(self.norm2(x))
+
+        B_merge = int(x.shape[0])
+        x = x.view(B_channel, B_merge//B_channel, self.per_channel, C_channel)
+        x = x.permute(0, 3, 1, 2).contiguous().view(B_channel, C_channel, -1)
+        #x = x.transpose(1, 2)
+        return x
+
 
 class MyTransformer(nn.Module):
     def __init__(self, img_size=224, in_chans=3, num_classes=1000, num_stages=4, 
@@ -129,12 +156,27 @@ class MyTransformer(nn.Module):
                 n_groups=n_groups[i]
             )
 
+            # block = nn.ModuleList([Block(
+            #     dim=embed_dims[i], 
+            #     num_heads=num_heads[i],
+            #     mlp_ratio=mlp_ratios[i], 
+            #     drop=0., 
+            #     attn_drop=0.) for j in range(depths[i])])
+
             block = nn.ModuleList([Block(
                 dim=embed_dims[i], 
                 num_heads=num_heads[i],
-                mlp_ratio=mlp_ratios[i], 
+                mlp_ratio=mlp_ratios[i],
+                patch_size=img_size,
                 drop=0., 
-                attn_drop=0.) for j in range(depths[i])])
+                attn_drop=0.) if j % 2 == 0 else ChannelBlock(
+                dim=embed_dims[i], 
+                num_heads=num_heads[i],
+                mlp_ratio=mlp_ratios[i],
+                patch_size=img_size,
+                drop=0., 
+                attn_drop=0.)
+                for j in range(depths[i])])
             
             norm = nn.LayerNorm(embed_dims[i])
 
