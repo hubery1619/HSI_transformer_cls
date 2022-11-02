@@ -34,6 +34,7 @@ def get_model(model_name, dataset_name, patch_size):
     elif model_name == 'ssftt':
         model = ssftt(dataset_name, patch_size)
 
+
     else:
         raise KeyError("{} model is not supported yet".format(model_name))
 
