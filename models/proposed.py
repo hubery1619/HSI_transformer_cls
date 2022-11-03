@@ -49,8 +49,8 @@ class Attention(nn.Module):
         self.dim = dim
         self.num_heads = num_heads
 
-        self.q = nn.Linear(dim, dim, bias=True)
-        self.kv = nn.Linear(dim, dim * 2, bias=True)
+        self.q = nn.Linear(dim, dim, bias=qkv_bias)
+        self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
@@ -78,7 +78,7 @@ class Attention(nn.Module):
 
 
 class PixelBlock(nn.Module):
-    def __init__(self, dim, num_heads, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0.):
+    def __init__(self, dim, num_heads, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.attn = Attention(dim, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
@@ -94,7 +94,7 @@ class PixelBlock(nn.Module):
 
 
 class ChannelBlock(nn.Module):
-    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0.):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
         super().__init__()
         dim_transpose = patch_size*patch_size
         self.head_channel = dim
@@ -128,7 +128,7 @@ class BasicLayer(nn.Module):
     
     
     """
-    def __init__(self, dim=256, num_heads=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0.):
+    def __init__(self, dim=256, num_heads=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
         super().__init__()
 
         # build blocks
@@ -138,14 +138,16 @@ class BasicLayer(nn.Module):
             mlp_ratio=mlp_ratio,
             drop=0., 
             attn_drop=0.,
-            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path) if j % 2 == 0 else ChannelBlock(
+            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+            qkv_bias=qkv_bias) if j % 2 == 0 else ChannelBlock(
             dim=dim, 
             num_heads=1,
             mlp_ratio=mlp_ratio,
             patch_size=patch_size,
             drop=0., 
             attn_drop=0.,
-            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path)
+            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+            qkv_bias=qkv_bias)
             for j in range(depth)])
 
 
@@ -199,7 +201,7 @@ class TokenEmbedding(nn.Module):
 
 class HyperTransformer(nn.Module):
     def __init__(self, img_size=224, in_chans=3, num_classes=1000, num_stages=4, 
-                n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads=[8, 4, 2, 2], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], ape=False, patch_norm=False, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1):
+                n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads=[8, 4, 2, 2], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], qkv_bias=True, ape=False, patch_norm=False, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1):
         super().__init__()
 
         self.num_stages = num_stages
@@ -232,7 +234,8 @@ class HyperTransformer(nn.Module):
                                         mlp_ratio=mlp_ratios[i_layer], 
                                         drop=0., 
                                         attn_drop=0., 
-                                        drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])])
+                                        drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
+                                        qkv_bias=qkv_bias)
             self.attention_layers.append(attention_layer)
 
             embedding_layer = TokenEmbedding(in_feature_map_size=img_size,
