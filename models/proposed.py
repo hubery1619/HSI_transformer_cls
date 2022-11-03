@@ -1,26 +1,28 @@
-import math
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from models.modules.odconv import ODConv2d
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+import numpy as np
+import math
 
 
 
 class Mlp(nn.Module):
-    def __init__(self, in_features, hidden_features=None, out_features=None, drop=0.):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
         self.fc1 = nn.Linear(in_features, hidden_features)
-        self.act = nn.GELU()
+        self.act = act_layer()
         self.fc2 = nn.Linear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
 
     def forward(self, x):
         """
         input: (B, N, C)
-        B = Batch size, N = patch_size * patch_size, C = dimension hidden_features and out_features
-        output: (B, N, C)
+        B = Batch size, N = patch_size * patch_size, C = dimension for attention
+        output: (B, N, C)        
         """
         x = self.fc1(x)
         x = self.act(x)
@@ -30,8 +32,19 @@ class Mlp(nn.Module):
         return x
 
 
+
+
 class Attention(nn.Module):
-    def __init__(self, dim, num_heads=16, attn_drop=0., proj_drop=0.):
+    r""" Self attention module.
+    Args:
+        dim (int): Number of input channels.
+        #window_size (tuple[int]): The height and width of the window.
+        num_heads (int): Number of attention heads.
+        qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
+        attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
+        proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+    """
+    def __init__(self, dim, num_heads=16, attn_drop=0., proj_drop=0., qkv_bias=True):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -64,37 +77,7 @@ class Attention(nn.Module):
         return x
 
 
-class GroupedPixelEmbedding(nn.Module):
-    def __init__(self, in_feature_map_size=7, in_chans=3, embed_dim=128, n_groups=1, patch_norm_flag=False):
-        super().__init__()
-        self.ifm_size = in_feature_map_size
-        # self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
-        self.proj = ODConv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
-        self.batch_norm = nn.BatchNorm2d(embed_dim)
-        self.relu = nn.ReLU(inplace=True)
-        self.patch_norm_flag = patch_norm_flag
-        if patch_norm_flag:
-            self.patch_norm = nn.LayerNorm(embed_dim)
-
-    def forward(self, x):
-        """
-        input: (B, in_chans, in_feature_map_size, in_feature_map_size)
-        output: (B, (after_feature_map_size x after_feature_map_size-2), embed_dim = C)
-        """
-        x = self.proj(x)
-        x = self.relu(self.batch_norm(x))
-
-        if self.patch_norm_flag:
-            x = self.patch_norm(x)
-        
-        x = x.flatten(2).transpose(1, 2)
-        
-        after_feature_map_size = self.ifm_size  
-        
-        return x, after_feature_map_size
-
-
-class Block(nn.Module):
+class PixelBlock(nn.Module):
     def __init__(self, dim, num_heads, mlp_ratio=4, drop=0., attn_drop=0.):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
@@ -107,6 +90,7 @@ class Block(nn.Module):
         x = x + self.attn(self.norm1(x))
         x = x + self.mlp(self.norm2(x))
         return x
+
 
 class ChannelBlock(nn.Module):
     def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0.):
@@ -136,13 +120,88 @@ class ChannelBlock(nn.Module):
         return x
 
 
-class MyTransformer(nn.Module):
+class BasicLayer(nn.Module):
+    """A basic Transformer layer for one stage
+    we need to add the API of drop_path
+    
+    
+    """
+    def __init__(self, dim=256, num_heads=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0.):
+        super().__init__()
+
+        # build blocks
+        self.blocks = nn.ModuleList([PixelBlock(
+            dim=dim, 
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop=0., 
+            attn_drop=0.) if j % 2 == 0 else ChannelBlock(
+            dim=dim, 
+            num_heads=1,
+            mlp_ratio=mlp_ratio,
+            patch_size=patch_size,
+            drop=0., 
+            attn_drop=0.)
+            for j in range(depth)])
+
+
+    def forward(self, x):
+        for blk in self.blocks:
+            x = blk(x)
+        
+        return x
+
+
+    def _init_respostnorm(self):
+        for blk in self.blocks:
+            nn.init.constant_(blk.norm1.bias, 0)
+            nn.init.constant_(blk.norm1.weight, 0)
+            nn.init.constant_(blk.norm2.bias, 0)
+            nn.init.constant_(blk.norm2.weight, 0)
+
+
+
+class TokenEmbedding(nn.Module):
+    def __init__(self, in_feature_map_size=7, in_chans=3, embed_dim=128, n_groups=1, patch_norm_flag=False):
+        super().__init__()
+        self.ifm_size = in_feature_map_size
+        # self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
+        self.proj = ODConv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
+        self.batch_norm = nn.BatchNorm2d(embed_dim)
+        self.relu = nn.ReLU(inplace=True)
+        self.patch_norm_flag = patch_norm_flag
+        if patch_norm_flag:
+            self.patch_norm = nn.LayerNorm(embed_dim)
+
+    def forward(self, x):
+        """
+        input: (B, in_chans, in_feature_map_size, in_feature_map_size)
+        output: (B, (after_feature_map_size x after_feature_map_size-2), embed_dim = C)
+        """
+        x = self.proj(x)
+        x = self.relu(self.batch_norm(x))
+
+        if self.patch_norm_flag:
+            x = self.patch_norm(x)
+        
+        x = x.flatten(2).transpose(1, 2)
+        
+        after_feature_map_size = self.ifm_size  
+        
+        return x, after_feature_map_size
+
+
+
+
+class HyperTransformer(nn.Module):
     def __init__(self, img_size=224, in_chans=3, num_classes=1000, num_stages=4, 
-                n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads=[8, 4, 2, 2], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], drop_path_rate=0.1, ape=False, patch_norm=False):
+                n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads=[8, 4, 2, 2], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], ape=False, patch_norm=False, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1):
         super().__init__()
 
         self.num_stages = num_stages
+        self.num_layers = len(depths)
         self.ape = ape
+        self.img_size = img_size
         
         new_bands = math.ceil(in_chans / n_groups[0]) * n_groups[0]
         self.pad = nn.ReplicationPad3d((0, 0, 0, 0, 0, new_bands - in_chans))
@@ -150,64 +209,44 @@ class MyTransformer(nn.Module):
 
         # absolute position embedding
         if self.ape:
-            self.absolute_pos_emd = nn.Parameter(1, num_patches, embed_dims[0])
+            self.absolute_pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dims[0]))
+            trunc_normal_(self.absolute_pos_embed, std=.02)
 
         # stochastic depth
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 
+        # build layers
+        self.attention_layers = nn.ModuleList()
+        self.embedding_layers = nn.ModuleList()
+        self.norm_layers = nn.ModuleList()
+
+        for i_layer in range(self.num_layers):
+            attention_layer = BasicLayer(dim=embed_dims[i_layer], 
+                                        num_heads=num_heads[i_layer], 
+                                        depth=depths[i_layer], 
+                                        patch_size=self.img_size, 
+                                        mlp_ratio=mlp_ratios[i_layer], 
+                                        drop=0., 
+                                        attn_drop=0., 
+                                        drop_path=0.)
+            self.attention_layers.append(attention_layer)
+
+            embedding_layer = TokenEmbedding(in_feature_map_size=img_size,
+                                            in_chans=new_bands if i_layer == 0 else embed_dims[i_layer - 1],
+                                            embed_dim=embed_dims[i_layer],
+                                            n_groups=n_groups[i_layer],
+                                            patch_norm_flag=patch_norm)
+            self.embedding_layers.append(embedding_layer)
+
+            norm = nn.LayerNorm(embed_dims[i_layer])
+            self.norm_layers.append(norm) 
 
 
-        for i in range(num_stages):
-            patch_embed = GroupedPixelEmbedding(
-                in_feature_map_size=img_size,
-                in_chans=new_bands if i == 0 else embed_dims[i - 1],
-                embed_dim=embed_dims[i],
-                n_groups=n_groups[i],
-                patch_norm_flag=patch_norm
-            )
-
-            block = nn.ModuleList([Block(
-                dim=embed_dims[i], 
-                num_heads=num_heads[i],
-                mlp_ratio=mlp_ratios[i],
-                drop=0., 
-                attn_drop=0.) if j % 2 == 0 else ChannelBlock(
-                dim=embed_dims[i], 
-                num_heads=1,
-                mlp_ratio=mlp_ratios[i],
-                patch_size=img_size,
-                drop=0., 
-                attn_drop=0.)
-                for j in range(depths[i])])
-
-
-            # block = nn.ModuleList([ChannelBlock(
-            #     dim=embed_dims[i], 
-            #     num_heads=1,
-            #     mlp_ratio=mlp_ratios[i],
-            #     patch_size=img_size,
-            #     drop=0., 
-            #     attn_drop=0.)
-            #     for j in range(depths[i])])
-
-            # block = nn.ModuleList([Block(
-            #     dim=embed_dims[i], 
-            #     num_heads=num_heads[i],
-            #     mlp_ratio=mlp_ratios[i],
-            #     drop=0., 
-            #     attn_drop=0.) for j in range(depths[i])])
-            
-            norm = nn.LayerNorm(embed_dims[i])
-
-            setattr(self, f"patch_embed{i + 1}", patch_embed)
-            setattr(self, f"block{i + 1}", block)
-            setattr(self, f"norm{i + 1}", norm)
-        
-        self.head = nn.Linear(embed_dims[-1], num_classes)  # 只有pvt时的Head
-
-
+        self.head = nn.Linear(embed_dims[-1], num_classes)
 
         self.apply(self._init_weights)
+        for bly in self.attention_layers:
+            bly._init_respostnorm()
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -224,22 +263,21 @@ class MyTransformer(nn.Module):
         x = self.pad(x).squeeze(dim=1)
         B = x.shape[0]
 
-        for i in range(self.num_stages):
-            patch_embed = getattr(self, f"patch_embed{i + 1}")
-            block = getattr(self, f"block{i + 1}")
-            norm = getattr(self, f"norm{i + 1}")
+        for i in range(self.num_layers):
+            patch_embed = self.embedding_layers[i]
+            block = self.attention_layers[i]
+            norm = self.norm_layers[i]
             
             x, s = patch_embed(x)  # s = feature map size after patch embedding
             
             if self.ape and i == 0:
-                x = x + self.absolute_pos_emd
+                x = x + self.absolute_pos_embed
 
-            for blk in block:
-                x = blk(x)
+            x = block(x)
             
             x = norm(x)
             
-            if i != self.num_stages - 1: 
+            if i != self.num_layers - 1: 
                 x = x.reshape(B, s, s, -1).permute(0, 3, 1, 2).contiguous()
         
         return x
@@ -250,19 +288,18 @@ class MyTransformer(nn.Module):
         x = self.head(x)
         return x
 
-
 def proposed(dataset, patch_size):
     model = None
     if dataset == 'sa':
-        model = MyTransformer(img_size=patch_size, in_chans=204, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, in_chans=204, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'hu':
-        model = MyTransformer(img_size=patch_size, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'pu':
-        model = MyTransformer(img_size=patch_size, in_chans=103, num_classes=9, n_groups=[2, 2, 2], depths=[1, 2, 1])
+        model = HyperTransformer(img_size=patch_size, in_chans=103, num_classes=9, n_groups=[2, 2, 2], depths=[1, 2, 1])
     elif dataset == 'whulk':
-        model = MyTransformer(img_size=patch_size, in_chans=270, num_classes=9, n_groups=[2, 2, 2], depths=[2, 2, 1])
+        model = HyperTransformer(img_size=patch_size, in_chans=270, num_classes=9, n_groups=[2, 2, 2], depths=[2, 2, 1])
     elif dataset == 'hrl':
-        model = MyTransformer(img_size=patch_size, in_chans=176, num_classes=14, n_groups=[4, 4, 4], depths=[1, 2, 1])
+        model = HyperTransformer(img_size=patch_size, in_chans=176, num_classes=14, n_groups=[4, 4, 4], depths=[1, 2, 1])
     return model
 
 if __name__ == "__main__":
@@ -270,4 +307,3 @@ if __name__ == "__main__":
     print("input shape:", t.shape)
     net = proposed(dataset='sa', patch_size=7)
     print("output shape:", net(t).shape)
-
