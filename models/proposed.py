@@ -49,8 +49,9 @@ class Attention(nn.Module):
         self.dim = dim
         self.num_heads = num_heads
 
-        self.q = nn.Linear(dim, dim, bias=qkv_bias)
-        self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
+        # self.q = nn.Linear(dim, dim, bias=qkv_bias)
+        # self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
@@ -62,9 +63,11 @@ class Attention(nn.Module):
         output: (B, N, C)
         """
         B, N, C = x.shape
-        q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
-        kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        k, v = kv[0], kv[1]
+        # q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        # kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        # k, v = kv[0], kv[1]
+        qkv = self.qkv(x).reshape(B, -1, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]
 
         attn = (q @ k.transpose(-2, -1))
         attn = attn.softmax(dim=-1)
