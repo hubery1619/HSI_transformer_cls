@@ -241,7 +241,7 @@ class HyperTransformer(nn.Module):
             norm = nn.LayerNorm(embed_dims[i_layer])
             self.norm_layers.append(norm) 
 
-
+        self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.head = nn.Linear(embed_dims[-1], num_classes)
 
         self.apply(self._init_weights)
@@ -276,17 +276,28 @@ class HyperTransformer(nn.Module):
             x = block(x)
             
             x = norm(x)
+
             
             if i != self.num_layers - 1: 
                 x = x.reshape(B, s, s, -1).permute(0, 3, 1, 2).contiguous()
+
+        x = self.avgpool(x.transpose(1, 2))  # B C 1   
+        x = torch.flatten(x, 1)             
         
         return x
+
     
     def forward(self, x):
         x = self.forward_features(x)
-        x = x.mean(dim=1)
         x = self.head(x)
         return x
+
+
+    # def forward(self, x):
+    #     x = self.forward_features(x)
+    #     x = x.mean(dim=1)
+    #     x = self.head(x)
+    #     return x
 
 def proposed(dataset, patch_size):
     model = None
