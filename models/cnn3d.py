@@ -110,6 +110,8 @@ def cnn3d(dataset, patch_size):
     model = None
     if dataset == 'sa':
         model = CNN3D(input_channels=204, n_classes=16, patch_size=patch_size)
+    elif dataset == 'hu':
+        model = CNN3D(input_channels=144, n_classes=15, patch_size=patch_size)
     elif dataset == 'pu':
         model = CNN3D(input_channels=103, n_classes=9, patch_size=patch_size)
     elif dataset == 'whulk':

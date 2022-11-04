@@ -49,8 +49,6 @@ class Attention(nn.Module):
         self.dim = dim
         self.num_heads = num_heads
 
-        # self.q = nn.Linear(dim, dim, bias=qkv_bias)
-        # self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
@@ -63,9 +61,6 @@ class Attention(nn.Module):
         output: (B, N, C)
         """
         B, N, C = x.shape
-        # q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
-        # kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        # k, v = kv[0], kv[1]
         qkv = self.qkv(x).reshape(B, -1, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
@@ -81,7 +76,7 @@ class Attention(nn.Module):
 
 
 class PixelBlock(nn.Module):
-    def __init__(self, dim, num_heads, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.attn = Attention(dim, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
@@ -125,6 +120,126 @@ class ChannelBlock(nn.Module):
         return x
 
 
+# modify channel block as multi-head
+class ChannelMultiHeadBlock(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
+        super().__init__()
+        self.dim_transpose = patch_size*patch_size
+        self.head_channel = dim
+        self.per_channel = 16
+        num_heads = math.ceil(self.dim_transpose / self.per_channel)
+        self.channel_pad = self.per_channel * num_heads
+        self.channel_rep_pad = nn.ReplicationPad1d(padding=(0,self.channel_pad-self.dim_transpose))
+        # num_heads = self.head_channel/self.per_channel
+        self.norm1 = nn.LayerNorm(self.channel_pad)
+        self.attn = Attention(self.channel_pad, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(self.channel_pad)
+        mlp_hidden_dim = int(self.channel_pad * mlp_ratio)
+        self.mlp = Mlp(in_features=self.channel_pad, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+
+    def forward(self, x):
+        x = x.transpose(1, 2)
+        x = self.channel_rep_pad(x)
+        B_channel, N_channel, C_channel = x.shape
+        x = x.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        x = x.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)
+        x = x + self.drop_path(self.attn(self.norm1(x)))
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        B_merge = int(x.shape[0])
+        x = x.view(B_channel, B_merge//B_channel, self.per_channel, C_channel)
+        x = x.permute(0, 3, 1, 2).contiguous().view(B_channel, C_channel, -1)
+        x = x[:, :self.dim_transpose, :]
+        #x = x.transpose(1, 2)
+        return x
+
+
+# add convolution branch in Pixel-level attention module 
+class PixelConvBlock(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(dim)
+        self.attn = Attention(dim, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.patch_size = patch_size
+        self.conv_branch = nn.Sequential(
+                            nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
+                            nn.BatchNorm2d(mlp_hidden_dim),
+                            nn.SiLU(inplace=True),
+                            nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
+                            )
+
+    def forward(self, x):
+        # convolution branch
+        x1 = x
+        B = x1.shape[0]
+        # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
+        convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
+
+        # self_attention branch
+        x = x + self.drop_path(self.attn(self.norm1(x)))
+
+        # merge convolution branch and self_attention branch
+        x = x + convX
+
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        return x
+
+
+# add convolution branch in Channel-level attention module 
+class ChannelConvBlock(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1):
+        super().__init__()
+        dim_transpose = patch_size*patch_size
+        self.head_channel = dim
+        self.per_channel = 16
+        # num_heads = self.head_channel/self.per_channel
+        self.norm1 = nn.LayerNorm(dim_transpose)
+        self.attn = Attention(dim_transpose, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(dim_transpose)
+        mlp_hidden_dim = int(dim_transpose * mlp_ratio)
+        self.mlp = Mlp(in_features=dim_transpose, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.patch_size = patch_size
+        self.conv_branch = nn.Sequential(
+                            nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
+                            nn.BatchNorm2d(mlp_hidden_dim),
+                            nn.SiLU(inplace=True),
+                            nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
+                            )
+
+    def forward(self, x):
+        # convolution branch
+        x1 = x
+        B = x1.shape[0]
+        # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
+        convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
+
+        # self_attention branch        
+        x = x.transpose(1, 2)
+        B_channel, N_channel, C_channel = x.shape
+        x = x.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        x = x.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)      
+        x = x + self.drop_path(self.attn(self.norm1(x)))
+
+        # merge convolution branch and self_attention branch
+        convX = convX.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        convX = convX.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)      
+        x = x + convX   
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        B_merge = int(x.shape[0])
+        x = x.view(B_channel, B_merge//B_channel, self.per_channel, C_channel)
+        x = x.permute(0, 3, 1, 2).contiguous().view(B_channel, C_channel, -1)
+        #x = x.transpose(1, 2)
+        return x
+
+
 class BasicLayer(nn.Module):
     """A basic Transformer layer for one stage
     we need to add the API of drop_path
@@ -135,14 +250,38 @@ class BasicLayer(nn.Module):
         super().__init__()
 
         # build blocks
-        self.blocks = nn.ModuleList([PixelBlock(
+        # self.blocks = nn.ModuleList([PixelConvBlock(
+        #     dim=dim, 
+        #     num_heads=num_heads,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias) for j in range(depth)])
+
+
+        # self.blocks = nn.ModuleList([ChannelBlock(
+        #     dim=dim, 
+        #     num_heads=1,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias)
+        #     for j in range(depth)])
+
+
+        self.blocks = nn.ModuleList([ChannelMultiHeadBlock(
             dim=dim, 
             num_heads=num_heads,
             mlp_ratio=mlp_ratio,
+            patch_size=patch_size,
             drop=0., 
             attn_drop=0.,
             drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-            qkv_bias=qkv_bias) if j % 2 == 0 else ChannelBlock(
+            qkv_bias=qkv_bias) if j % 2 == 0 else PixelConvBlock(
             dim=dim, 
             num_heads=1,
             mlp_ratio=mlp_ratio,
