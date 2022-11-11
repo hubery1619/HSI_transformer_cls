@@ -4,6 +4,7 @@ import numpy as np
 import sklearn.model_selection
 import torch
 import torch.utils.data
+import itertools
 
 
 def load_mat_hsi(dataset_name, dataset_dir):
@@ -166,7 +167,7 @@ def load_mat_hsi(dataset_name, dataset_dir):
     return image, gt, labels
 
 
-def sample_gt(gt, percentage, seed):
+def sample_gt(gt, percentage, seed, disjoint=True, window_size=3):
     """
     :param gt: 2d int array, -1 for undefined or not selected, index starts at 0
     :param percentage: for example, 0.1 for 10%, 0.02 for 2%, 0.5 for 50%
@@ -187,11 +188,58 @@ def sample_gt(gt, percentage, seed):
         stratify=y
     )
 
+###modify the code
+    if disjoint:
+        print(gt.shape)
+
+        img_height, img_width = gt.shape
+        # window_size = 3
+        # train_indices_indx0 = train_indices[1][0]
+        # train_indices_indy0 = train_indices[1][1]
+        # print(train_indices_indx0)
+        # print(train_indices_indy0)
+
+        # x_low = max(0, train_indices_indx0-3)
+        # x_high = min(img_height, train_indices_indx0+3)
+
+        neighbor_point = []
+        Train_len = len(train_indices)
+        Test_len = len(test_indices)
+
+        for element in range(Train_len):
+            train_indices_indx0 = train_indices[element][0]
+            train_indices_indy0 = train_indices[element][1]
+            x_range = list(range(max(0, train_indices_indx0-window_size), min(img_height-1, train_indices_indx0+window_size)+1))
+            y_range = list(range(max(0, train_indices_indy0-window_size), min(img_height-1, train_indices_indy0+window_size)+1))
+            for item in itertools.product(x_range, y_range):
+                neighbor_point.append(item)
+
+        neighbor_point_set = neighbor_point[0]
+
+        # train_indices_set = set(train_indices)
+        # test_indices_set = set(test_indices)
+        # inter_result = test_indices_set.intersection(neighbor_point_set)
+
+        res = set(neighbor_point) & set(test_indices)
+
+        result = list(set(test_indices) - res)
+        test_indices = result
+
+
+#####################modify the code#####################
+
+
     train_indices = [list(t) for t in zip(*train_indices)]
     test_indices = [list(t) for t in zip(*test_indices)]
+    x1 = test_indices[0]
+    x2 = test_indices[1]
+    x3 = tuple(train_indices)
+
+
 
     train_gt[tuple(train_indices)] = gt[tuple(train_indices)]
     test_gt[tuple(test_indices)] = gt[tuple(test_indices)]
+
 
     return train_gt, test_gt
 

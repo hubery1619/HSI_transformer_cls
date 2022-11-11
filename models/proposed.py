@@ -240,6 +240,62 @@ class ChannelConvBlock(nn.Module):
         return x
 
 
+# add convolution branch in Channel-level attention module 
+class ChannelMultiHeadConvBlock(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1):
+        super().__init__()
+        self.dim_transpose = patch_size*patch_size
+        self.head_channel = dim
+        self.per_channel = 16
+        num_heads = math.ceil(self.dim_transpose / self.per_channel)
+        self.channel_pad = self.per_channel * num_heads
+        self.channel_rep_pad = nn.ReplicationPad1d(padding=(0,self.channel_pad-self.dim_transpose))
+        # num_heads = self.head_channel/self.per_channel
+        self.norm1 = nn.LayerNorm(self.channel_pad)
+        self.attn = Attention(self.channel_pad, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(self.channel_pad)
+        mlp_hidden_dim = int(self.channel_pad * mlp_ratio)
+        self.mlp = Mlp(in_features=self.channel_pad, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.patch_size = patch_size
+        self.conv_branch = nn.Sequential(
+                            nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
+                            nn.BatchNorm2d(mlp_hidden_dim),
+                            nn.SiLU(inplace=True),
+                            nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
+                            )
+
+    def forward(self, x):
+        # convolution branch
+        x1 = x
+        B = x1.shape[0]
+        # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
+        convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).view(B, self.head_channel, -1))
+
+        # self_attention branch        
+        x = x.transpose(1, 2)
+        x = self.channel_rep_pad(x)
+        B_channel, N_channel, C_channel = x.shape
+        x = x.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        x = x.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)      
+        x = x + self.drop_path(self.attn(self.norm1(x)))
+
+        # merge convolution branch and self_attention branch
+        convX = self.channel_rep_pad(convX)
+        convX = convX.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        convX = convX.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)      
+        x = x + convX
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        B_merge = int(x.shape[0])
+        x = x.view(B_channel, B_merge//B_channel, self.per_channel, C_channel)
+        x = x.permute(0, 3, 1, 2).contiguous().view(B_channel, C_channel, -1)
+        x = x[:, :self.dim_transpose, :]
+        #x = x.transpose(1, 2)
+        return x
+
+
+
 class BasicLayer(nn.Module):
     """A basic Transformer layer for one stage
     we need to add the API of drop_path
@@ -250,7 +306,7 @@ class BasicLayer(nn.Module):
         super().__init__()
 
         # build blocks
-        # self.blocks = nn.ModuleList([PixelConvBlock(
+        # self.blocks = nn.ModuleList([ChannelMultiHeadConvBlock(
         #     dim=dim, 
         #     num_heads=num_heads,
         #     mlp_ratio=mlp_ratio,
@@ -273,7 +329,7 @@ class BasicLayer(nn.Module):
         #     for j in range(depth)])
 
 
-        self.blocks = nn.ModuleList([ChannelMultiHeadBlock(
+        self.blocks = nn.ModuleList([PixelConvBlock(
             dim=dim, 
             num_heads=num_heads,
             mlp_ratio=mlp_ratio,
@@ -281,7 +337,7 @@ class BasicLayer(nn.Module):
             drop=0., 
             attn_drop=0.,
             drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-            qkv_bias=qkv_bias) if j % 2 == 0 else PixelConvBlock(
+            qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlock(
             dim=dim, 
             num_heads=1,
             mlp_ratio=mlp_ratio,

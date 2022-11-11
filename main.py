@@ -14,14 +14,15 @@ if __name__ == "__main__":
     # fixed means for all models
     parser = argparse.ArgumentParser(description="run patch-based HSI classification")
     parser.add_argument("--model", type=str, default='cnn3d')
-    parser.add_argument("--dataset_name", type=str, default="sa")
+    parser.add_argument("--dataset_name", type=str, default="hu")
     parser.add_argument("--dataset_dir", type=str, default="./datasets")
     parser.add_argument("--device", type=str, default="0")
     parser.add_argument("--patch_size", type=int, default=7)
     parser.add_argument("--num_run", type=int, default=5) 
     parser.add_argument("--epoch", type=int, default=200)    
     parser.add_argument("--bs", type=int, default=128)  # bs = batch size  
-    parser.add_argument("--ratio", type=float, default=0.1)
+    parser.add_argument("--ratio", type=float, default=0.05)
+    parser.add_argument('--disjoint', action='store_false')  # disjoint the training patch and testing patch  
 
     opts = parser.parse_args()
 
@@ -35,7 +36,12 @@ if __name__ == "__main__":
     print("patch size = {}".format(opts.patch_size))
     print("batch size = {}".format(opts.bs))
     print("total epoch = {}".format(opts.epoch))
-    print("{} for training, {} for validation and {} testing".format(opts.ratio / 2, opts.ratio / 2, 1 - opts.ratio))
+    #print("disjoint setting = {}".format(opts.disjoint))
+    opts.disjoint = False
+    if opts.disjoint:
+        print("{} for training with disjoint sampling".format(opts.ratio))
+    else:
+        print("{} for training, {} for validation and {} testing with random setting".format(opts.ratio / 2, opts.ratio / 2, 1 - opts.ratio))
 
     # load data
     image, gt, labels = load_mat_hsi(opts.dataset_name, opts.dataset_dir)
@@ -55,9 +61,14 @@ if __name__ == "__main__":
         print("run {} / {}".format(run+1, opts.num_run))
 
         # get train_gt, val_gt and test_gt
-        trainval_gt, test_gt = sample_gt(gt, opts.ratio, seeds[run])
-        train_gt, val_gt = sample_gt(trainval_gt, 0.5, seeds[run])
-        del trainval_gt
+        if opts.disjoint:
+            train_gt, valtest_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+            val_gt, test_gt = sample_gt(valtest_gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+            del valtest_gt            
+        else:
+            trainval_gt, test_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+            train_gt, val_gt = sample_gt(trainval_gt, 0.5, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+            del trainval_gt
 
         train_set = HSIDataset(image, train_gt, patch_size=opts.patch_size, data_aug=True)
         val_set = HSIDataset(image, val_gt, patch_size=opts.patch_size, data_aug=False)
