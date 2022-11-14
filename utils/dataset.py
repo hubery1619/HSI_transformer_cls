@@ -7,7 +7,7 @@ import torch.utils.data
 import itertools
 
 
-def load_mat_hsi(dataset_name, dataset_dir):
+def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt'):
     """ load HSI.mat dataset """
     # available sets
     available_sets = [
@@ -54,8 +54,8 @@ def load_mat_hsi(dataset_name, dataset_dir):
     elif (dataset_name == 'hu'):
         image = io.loadmat(os.path.join(dataset_dir, dataset_name, "HU_cube.mat"))
         image = image['HU_cube']
-        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "gt.mat"))
-        gt = gt['gt']
+        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, gt_file))
+        gt = gt[mat_name]
         labels = [
             "Undefined",
             "Healthy grass",

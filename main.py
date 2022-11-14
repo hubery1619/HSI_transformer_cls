@@ -44,7 +44,13 @@ if __name__ == "__main__":
         print("{} for training, {} for validation and {} testing with random setting".format(opts.ratio / 2, opts.ratio / 2, 1 - opts.ratio))
 
     # load data
-    image, gt, labels = load_mat_hsi(opts.dataset_name, opts.dataset_dir)
+    image, gt, labels = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
+
+    # load training + validation dataset (TR_label.mat)
+    image, gt_TR_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TRLabel.mat", mat_name = 'TRLabel')
+
+    # load training + validation dataset (TR_label.mat)
+    image, gt_TS_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TSLabel.mat", mat_name = 'TSLabel')
 
     num_classes = len(labels)
     num_bands = image.shape[-1]
@@ -61,14 +67,23 @@ if __name__ == "__main__":
         print("run {} / {}".format(run+1, opts.num_run))
 
         # get train_gt, val_gt and test_gt
-        if opts.disjoint:
-            train_gt, valtest_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
-            val_gt, test_gt = sample_gt(valtest_gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
-            del valtest_gt            
-        else:
-            trainval_gt, test_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
-            train_gt, val_gt = sample_gt(trainval_gt, 0.5, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
-            del trainval_gt
+
+        test_gt = gt_TS_label
+        train_gt, val_gt = sample_gt(gt_TR_label, 0.8, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+
+
+        # val_gt, test_gt = sample_gt(gt_TS_label, 0.1, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+        # train_gt = gt_TR_label
+
+
+        # if opts.disjoint:
+        #     train_gt, valtest_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+        #     val_gt, test_gt = sample_gt(valtest_gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+        #     del valtest_gt            
+        # else:
+        #     trainval_gt, test_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+        #     train_gt, val_gt = sample_gt(trainval_gt, 0.5, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+        #     del trainval_gt
 
         train_set = HSIDataset(image, train_gt, patch_size=opts.patch_size, data_aug=True)
         val_set = HSIDataset(image, val_gt, patch_size=opts.patch_size, data_aug=False)
