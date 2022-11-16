@@ -213,6 +213,21 @@ def speformer(dataset, patch_size):
             mode = "CAF"
         )
 
+    elif dataset == 'hu':
+        model = ViT(
+            image_size=patch_size, 
+            near_band=3, 
+            num_patches=144, 
+            num_classes=15,
+            dim = 64,
+            depth = 5,
+            heads = 4,
+            mlp_dim = 8,
+            dropout = 0.1,
+            emb_dropout = 0.1,
+            mode = "CAF"
+        )
+
     elif dataset == 'pu':
         model = ViT(
             image_size=patch_size, 

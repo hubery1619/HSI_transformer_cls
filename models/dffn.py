@@ -107,6 +107,9 @@ def dffn(dataset, patch_size):
     if dataset == 'sa':
         model = DFFN(bands=204, classes=16, layers_num=[3,3,3])
 
+    elif dataset == 'hu':
+        model = DFFN(bands=144, classes=15, layers_num=[4,4,4])
+
     elif dataset == 'pu':
         model = DFFN(bands=103, classes=9, layers_num=[4,4,4])
 

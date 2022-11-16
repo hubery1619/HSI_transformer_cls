@@ -183,6 +183,8 @@ def ssftt(dataset, patch_size):
     model = None
     if dataset == 'sa':
         model = SSFTTnet(n_bands=204, num_classes=16)
+    elif dataset == 'hu':
+        model = SSFTTnet(n_bands=144, num_classes=15)
     elif dataset == 'pu':
         model = SSFTTnet(n_bands=103, num_classes=9)
     elif dataset == 'whulk':

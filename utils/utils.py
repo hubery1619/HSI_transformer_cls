@@ -177,4 +177,6 @@ def show_results(results, label_values=None, agregated=False):
 
     print(text)
 
+    return text
+
 

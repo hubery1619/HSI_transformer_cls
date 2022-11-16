@@ -38,6 +38,8 @@ def train(network, optimizer, criterion, train_loader, val_loader, epoch, saving
         best_acc = max(val_acc, best_acc)
         save_checkpoint(network, is_best, saving_path, epoch=e, acc=best_acc)
 
+    return best_acc
+
 
 def validation(network, val_loader, device):
     num_correct = 0.

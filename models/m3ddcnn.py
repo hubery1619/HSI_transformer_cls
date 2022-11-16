@@ -94,6 +94,8 @@ def m3ddcnn(dataset, patch_size):
     model = None
     if dataset == 'sa':
         model = M3DDCNN(input_channels=204, n_classes=16, patch_size=patch_size)
+    elif dataset == 'hu':
+        model = M3DDCNN(input_channels=144, n_classes=15, patch_size=patch_size)
     elif dataset == 'pu':
         model = M3DDCNN(input_channels=103, n_classes=9, patch_size=patch_size)
     elif dataset == 'whulk':

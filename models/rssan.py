@@ -125,6 +125,8 @@ def rssan(dataset, patch_size):
     model = None
     if dataset == 'sa':
         model = RSSAN(n_bands=204, kernel_number=32, patch_size=patch_size, n_classes=16)
+    elif dataset == 'hu':
+        model = RSSAN(n_bands=144, kernel_number=32, patch_size=patch_size, n_classes=15)
     elif dataset == 'pu':
         model = RSSAN(n_bands=103, kernel_number=32, patch_size=patch_size, n_classes=9)
     elif dataset == 'whulk':
