@@ -69,7 +69,7 @@ def get_cls_map(y):
     gt_re = np.reshape(y_gt, (y.shape[0], y.shape[1], 3))
 
     classification_map(gt_re, y, 300,
-                       'classification_maps/' + 'TSLabel_gt.png')
+                       'classification_maps/' + 'TRLabel_gt_commercial.png')
     print('------Get classification maps successful-------')
 
 
@@ -78,5 +78,11 @@ def get_cls_map(y):
 
 if __name__ == "__main__":
 
-    labels = sio.loadmat('./datasets/hu/TSLabel.mat')['TSLabel']
-    get_cls_map(labels)
+    labels = sio.loadmat('./datasets/hu/TRLabel.mat')['TRLabel']
+
+    temp_arr_0 = np.zeros((labels.shape)).astype(int)
+
+    #### commercial = 8, Highway = 10,  Parking lot 1 = 12
+    temp_arr_0[labels == 8] = 8    
+
+    get_cls_map(temp_arr_0)

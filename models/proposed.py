@@ -160,6 +160,7 @@ class PixelConvBlock(nn.Module):
     def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
+        self.init_values = 1e-4
         self.attn = Attention(dim, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
         self.norm2 = nn.LayerNorm(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
@@ -172,6 +173,7 @@ class PixelConvBlock(nn.Module):
                             nn.SiLU(inplace=True),
                             nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
                             )
+        self.gamma_1 = nn.Parameter(self.init_values * torch.ones((dim)),requires_grad=True)
 
     def forward(self, x):
         # convolution branch
@@ -184,7 +186,7 @@ class PixelConvBlock(nn.Module):
         x = x + self.drop_path(self.attn(self.norm1(x)))
 
         # merge convolution branch and self_attention branch
-        x = x + convX
+        x = x + self.gamma_1 * convX
 
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
