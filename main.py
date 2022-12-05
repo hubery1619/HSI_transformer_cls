@@ -11,6 +11,7 @@ from utils.utils import split_info_print, metrics, show_results
 from utils.scheduler import load_scheduler
 from models.get_model import get_model
 from train import train, test
+from timm.loss import LabelSmoothingCrossEntropy
 
 if __name__ == "__main__":
     # fixed means for all models
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--epoch", type=int, default=200)    
     parser.add_argument("--bs", type=int, default=128)  # bs = batch size  
     parser.add_argument("--ratio", type=float, default=0.8)
+    parser.add_argument('--smoothing', type=float, default=0.1, help='Label smoothing (default: 0.1)')
     parser.add_argument('--disjoint', action='store_false')  # disjoint the training patch and testing patch  
 
     opts = parser.parse_args()
@@ -124,7 +126,10 @@ if __name__ == "__main__":
             
             optimizer, scheduler = load_scheduler(opts.model, model)
 
-            criterion = nn.CrossEntropyLoss()
+            if opts.smoothing:
+                criterion = LabelSmoothingCrossEntropy(smoothing=opts.smoothing)
+            else:
+                criterion = nn.CrossEntropyLoss()
 
             # where to save checkpoint model
             model_dir = "./checkpoints/" + opts.model + '/' + opts.dataset_name + '/' + str(run)

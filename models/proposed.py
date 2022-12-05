@@ -5,6 +5,7 @@ from models.modules.odconv import ODConv2d
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 import numpy as np
 import math
+from models.attention_module import *
 
 
 
@@ -64,7 +65,7 @@ class Attention(nn.Module):
         qkv = self.qkv(x).reshape(B, -1, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        attn = (q @ k.transpose(-2, -1))
+        attn = (q @ k.transpose(-2, -1)) 
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
 
@@ -73,6 +74,178 @@ class Attention(nn.Module):
         x = self.proj_drop(x)
 
         return x
+
+
+class SepConv(nn.Module):
+    r"""
+    Inverted separable convolution from MobileNetV2: https://arxiv.org/abs/1801.04381.
+    """
+    def __init__(self, dim, expansion_ratio=2,
+        act1_layer=nn.GELU, act2_layer=nn.Identity, 
+        bias=False, kernel_size=3, padding=1,
+        **kwargs, ):
+        super().__init__()
+        med_channels = int(expansion_ratio * dim)
+        self.pwconv1 = nn.Linear(dim, med_channels, bias=bias)
+        self.act1 = act1_layer()
+        self.dwconv = nn.Conv2d(
+            med_channels, med_channels, kernel_size=kernel_size,
+            padding=padding, groups=med_channels, bias=bias) # depthwise conv
+        self.act2 = act2_layer()
+        self.pwconv2 = nn.Linear(med_channels, dim, bias=bias)
+
+    def forward(self, x):
+        x = self.pwconv1(x)
+        x = self.act1(x)
+        x = x.permute(0, 3, 1, 2)
+        x = self.dwconv(x)
+        x = x.permute(0, 2, 3, 1)
+        x = self.act2(x)
+        x = self.pwconv2(x)
+        return x
+
+
+### MBConv
+def _make_divisible(v, divisor, min_value=None):
+    """
+    This function is taken from the original tf repo.
+    It ensures that all layers have a channel number that is divisible by 8
+    It can be seen here:
+    https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    :param v:
+    :param divisor:
+    :param min_value:
+    :return:
+    """
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    # Make sure that round down does not go down by more than 10%.
+    if new_v < 0.9 * v:
+        new_v += divisor
+    return new_v
+
+
+# SiLU (Swish) activation function
+if hasattr(nn, 'SiLU'):
+    SiLU = nn.SiLU
+else:
+    # For compatibility with old PyTorch versions
+    class SiLU(nn.Module):
+        def forward(self, x):
+            return x * torch.sigmoid(x)
+
+ 
+class SELayer(nn.Module):
+    def __init__(self, inp, oup, reduction=4):
+        super(SELayer, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+                nn.Linear(oup, _make_divisible(inp // reduction, 8)),
+                SiLU(),
+                nn.Linear(_make_divisible(inp // reduction, 8), oup),
+                nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y
+
+
+def conv_3x3_bn(inp, oup, stride):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+        nn.BatchNorm2d(oup),
+        SiLU()
+    )
+
+
+def conv_1x1_bn(inp, oup):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+        SiLU()
+    )
+
+
+class MBConv(nn.Module):
+    def __init__(self, inp, oup, stride=1, expand_ratio=2, use_se=False):
+        super(MBConv, self).__init__()
+        assert stride in [1, 2]
+
+        hidden_dim = round(inp * expand_ratio)
+        # self.identity = stride == 1 and inp == oup
+        self.identity = False
+        self.conv1 = nn.Conv2d(inp, hidden_dim, 3, stride, 1, bias=False)
+        self.conv2 = nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False)
+        self.act1 = nn.SiLU()
+        self.norm1 = nn.BatchNorm2d(hidden_dim)
+        self.norm2 = nn.BatchNorm2d(oup)
+        self.att_module = SELayer(inp, hidden_dim)
+        # self.att_module = csSE(inp)
+
+
+
+
+
+        if use_se:
+            self.conv = nn.Sequential(
+                # pw
+                nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                SiLU(),
+                # dw
+                nn.Conv2d(hidden_dim, hidden_dim, 3, stride, 1, groups=hidden_dim, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                SiLU(),
+                SELayer(inp, hidden_dim),
+                # pw-linear
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+            )
+        else:
+            self.conv = nn.Sequential(
+                # fused
+                nn.Conv2d(inp, hidden_dim, 3, stride, 1, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                SiLU(),
+                # pw-linear
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+            )
+
+
+    def forward(self, x):
+        # if self.identity:
+        #     return x + self.conv(x)
+        # else:
+        #     return self.conv(x)
+        x = x.permute(0, 3, 1, 2)
+        x = self.conv1(x)
+        # x = self.norm1(x)
+        x = self.act1(x)
+        x = self.att_module(x)
+        x = self.conv2(x)
+        # x = self.norm2(x)
+        x = x.permute(0, 2, 3, 1)
+        return x
+
+        
+
+
+        nn.Conv2d(inp, hidden_dim, 3, stride, 1, bias=False),
+        nn.BatchNorm2d(hidden_dim),
+        SiLU(),
+        # pw-linear
+        nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+
+
+
+
+### MBConv
 
 
 class PixelBlock(nn.Module):
@@ -154,10 +327,44 @@ class ChannelMultiHeadBlock(nn.Module):
         #x = x.transpose(1, 2)
         return x
 
+class ChannelMultiHeadBlockUpdate(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
+        super().__init__()
+        self.dim_transpose = patch_size*patch_size
+        self.head_channel = dim
+        # self.per_channel = 16
+        self.per_channel = math.ceil(self.dim_transpose / num_heads)
+        self.channel_pad = self.per_channel * num_heads
+        self.channel_rep_pad = nn.ReplicationPad1d(padding=(0,self.channel_pad-self.dim_transpose))
+        # num_heads = self.head_channel/self.per_channel
+        self.norm1 = nn.LayerNorm(self.channel_pad)
+        self.attn = Attention(self.channel_pad, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(self.channel_pad)
+        mlp_hidden_dim = int(self.channel_pad * mlp_ratio)
+        self.mlp = Mlp(in_features=self.channel_pad, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+
+    def forward(self, x):
+        x = x.transpose(1, 2)
+        x = self.channel_rep_pad(x)
+        # B_channel, N_channel, C_channel = x.shape
+        # x = x.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        # x = x.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)
+        x = x + self.drop_path(self.attn(self.norm1(x)))
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        # B_merge = int(x.shape[0])
+        # x = x.view(B_channel, B_merge//B_channel, self.per_channel, C_channel)
+        # x = x.permute(0, 3, 1, 2).contiguous().view(B_channel, C_channel, -1)
+        x = x.transpose(1, 2)
+        x = x[:, :self.dim_transpose, :]
+        #x = x.transpose(1, 2)
+        return x
+
 
 # add convolution branch in Pixel-level attention module 
 class PixelConvBlock(nn.Module):
-    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1, depConv_flag=False):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.init_values = 1e-4
@@ -167,20 +374,31 @@ class PixelConvBlock(nn.Module):
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, drop=drop)
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.patch_size = patch_size
-        self.conv_branch = nn.Sequential(
-                            nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
-                            nn.BatchNorm2d(mlp_hidden_dim),
-                            nn.SiLU(inplace=True),
-                            nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
-                            )
+        self.depConv_flag = depConv_flag
+        if self.depConv_flag:
+            # self.conv_branch = SepConv(dim) 
+            # self.conv_branch = MBConv(dim, dim) 
+            self.conv_branch = MBConv(dim)
+
+        else:   
+            self.conv_branch = nn.Sequential(
+                                nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
+                                nn.BatchNorm2d(mlp_hidden_dim),
+                                nn.SiLU(inplace=True),
+                                nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
+                                )
         self.gamma_1 = nn.Parameter(self.init_values * torch.ones((dim)),requires_grad=True)
 
     def forward(self, x):
         # convolution branch
         x1 = x
         B = x1.shape[0]
-        # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
-        convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
+
+        if self.depConv_flag:
+            convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1)).view(B, self.patch_size*self.patch_size, -1))
+        else:
+            # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
+            convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
 
         # self_attention branch
         x = x + self.drop_path(self.attn(self.norm1(x)))
@@ -191,6 +409,56 @@ class PixelConvBlock(nn.Module):
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
         return x
+
+# add convolution branch in Pixel-level attention module 
+class PixelConvBlockNoAttention(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1, depConv_flag=True):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(dim)
+        self.init_values = 1e-4
+        self.attn = Attention(dim, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.patch_size = patch_size
+        self.depConv_flag = depConv_flag
+        if self.depConv_flag:
+            # self.conv_branch = SepConv(dim)
+            self.conv_branch = MBConv(dim, dim) 
+        else:   
+            self.conv_branch = nn.Sequential(
+                                nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
+                                nn.BatchNorm2d(mlp_hidden_dim),
+                                nn.SiLU(inplace=True),
+                                nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
+                                )
+        self.gamma_1 = nn.Parameter(self.init_values * torch.ones((dim)),requires_grad=True)
+
+    def forward(self, x):
+        # convolution branch
+        x1 = x
+        B = x1.shape[0]
+
+        if self.depConv_flag:
+            convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1)).view(B, self.patch_size*self.patch_size, -1))
+        else:
+            # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
+            convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
+
+        # self_attention branch
+        # x = x + self.drop_path(self.attn(self.norm1(x)))
+
+        # merge convolution branch and self_attention branch
+        x = x + self.gamma_1 * convX
+
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        return x
+
+
+
+
 
 
 # add convolution branch in Channel-level attention module 
@@ -304,19 +572,19 @@ class BasicLayer(nn.Module):
     
     
     """
-    def __init__(self, dim=256, num_heads=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
+    def __init__(self, dim=256, num_heads_channel=1, num_heads_spatial=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
         super().__init__()
 
         # build blocks
-        # self.blocks = nn.ModuleList([ChannelMultiHeadConvBlock(
-        #     dim=dim, 
-        #     num_heads=num_heads,
-        #     mlp_ratio=mlp_ratio,
-        #     patch_size=patch_size,
-        #     drop=0., 
-        #     attn_drop=0.,
-        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-        #     qkv_bias=qkv_bias) for j in range(depth)])
+        self.blocks = nn.ModuleList([PixelConvBlockNoAttention(
+            dim=dim, 
+            num_heads=num_heads_channel,
+            mlp_ratio=mlp_ratio,
+            patch_size=patch_size,
+            drop=0., 
+            attn_drop=0.,
+            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+            qkv_bias=qkv_bias) for j in range(depth)])
 
 
         # self.blocks = nn.ModuleList([ChannelBlock(
@@ -331,24 +599,44 @@ class BasicLayer(nn.Module):
         #     for j in range(depth)])
 
 
-        self.blocks = nn.ModuleList([PixelConvBlock(
-            dim=dim, 
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            patch_size=patch_size,
-            drop=0., 
-            attn_drop=0.,
-            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-            qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlock(
-            dim=dim, 
-            num_heads=1,
-            mlp_ratio=mlp_ratio,
-            patch_size=patch_size,
-            drop=0., 
-            attn_drop=0.,
-            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-            qkv_bias=qkv_bias)
-            for j in range(depth)])
+        # self.blocks = nn.ModuleList([PixelConvBlock(
+        #     dim=dim, 
+        #     num_heads=num_heads_channel,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlockUpdate(
+        #     dim=dim, 
+        #     num_heads=num_heads_spatial,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias)
+        #     for j in range(depth)])
+
+
+        # self.blocks = nn.ModuleList([PixelConvBlock(
+        #     dim=dim, 
+        #     num_heads=num_heads,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlock(
+        #     dim=dim, 
+        #     num_heads=1,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias)
+        #     for j in range(depth)])
 
 
     def forward(self, x):
@@ -401,7 +689,7 @@ class TokenEmbedding(nn.Module):
 
 class HyperTransformer(nn.Module):
     def __init__(self, img_size=224, in_chans=3, num_classes=1000, num_stages=4, 
-                n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads=[8, 4, 2, 2], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], qkv_bias=True, ape=False, patch_norm=False, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1):
+                n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads_channel=[8, 4, 2, 2], num_heads_spatial=[1, 1, 1, 1], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], qkv_bias=True, ape=False, patch_norm=False, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1):
         super().__init__()
 
         self.num_stages = num_stages
@@ -428,7 +716,8 @@ class HyperTransformer(nn.Module):
 
         for i_layer in range(self.num_layers):
             attention_layer = BasicLayer(dim=embed_dims[i_layer], 
-                                        num_heads=num_heads[i_layer], 
+                                        num_heads_channel=num_heads_channel[i_layer], 
+                                        num_heads_spatial=num_heads_spatial[i_layer], 
                                         depth=depths[i_layer], 
                                         patch_size=self.img_size, 
                                         mlp_ratio=mlp_ratios[i_layer], 
