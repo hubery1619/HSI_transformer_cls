@@ -15,7 +15,10 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
         'pu',
         'whulk',
         'hrl',
-        'hu'
+        'hu',
+        'bot',
+        'indian',
+        'ksc',
     ]
     assert dataset_name in available_sets, "dataset should be one of" + ' ' + str(available_sets)
 
@@ -78,6 +81,34 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
         undefined_label_index = 0
 
 
+    elif (dataset_name == 'indian'):
+        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "Indian_pines_corrected.mat"))
+        image = image['indian_pines_corrected']
+        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "Indian_pines_gt.mat"))
+        gt = gt['indian_pines_gt']
+        labels = [
+            "Undefined",
+            "Alfalfa",
+            "Corn-notill",
+            "Corn-mintill",
+            "Corn",
+            "Grass-pasture",
+            "Grass-trees",
+            "Grass-pasture-mowed",
+            "Hay-windrowed",
+            "Oats",
+            "Soybean-notill",
+            "Soybean-mintill",
+            "Soybean-clean",
+            "Wheat",
+            "Woods",
+            "Buildings-Grass-Trees-Drives",
+            "Stone-Steel-Towers",
+        ]
+        rgb_bands = [0, 1, 2]  # to be edited
+        undefined_label_index = 0
+
+
     elif (dataset_name == 'pu'):
         image = io.loadmat(os.path.join(dataset_dir, dataset_name, "PaviaU.mat"))
         image = image['paviaU']
@@ -97,6 +128,32 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
         ]
         rgb_bands = [0, 1, 2]  # to be edited
         undefined_label_index = 0
+
+
+    elif (dataset_name == 'ksc'):
+        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "KSC.mat"))
+        image = image['KSC']
+        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "KSC_gt.mat"))
+        gt = gt['KSC_gt']
+        labels = [
+            "Undefined",
+            "Scrub", 
+            "Willow swamp",
+            "Cabbage palm hammock", 
+            "Cabbage palm/oak hammock",
+            "Slash pine", 
+            "Oak/broadleaf hammock",
+            "Hardwood swamp", 
+            "Graminoid marsh", 
+            "Spartina marsh",
+            "Cattail marsh", 
+            "Salt marsh", 
+            "Mud flats", 
+            "Water"
+        ]
+        rgb_bands = [0, 1, 2]  # to be edited
+        undefined_label_index = 0
+
 
     elif (dataset_name == 'whulk'):
         image = io.loadmat(os.path.join(dataset_dir, dataset_name, "WHU_Hi_LongKou.mat"))
@@ -139,6 +196,31 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
             'Rocks and Sand',
             'Water',
             'Coastal Water'
+        ]
+        rgb_bands = [0, 1, 2]  # to be edited
+        undefined_label_index = 0
+    
+    elif (dataset_name == 'bot'):
+        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "Botswana.mat"))
+        image = image['Botswana']
+        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "Botswana_gt.mat"))
+        gt = gt['Botswana_gt']
+        labels = [
+            "Undefined", 
+            "Water", 
+            "Hippo grass",
+            "Floodplain grasses 1", 
+            "Floodplain grasses 2",
+            "Reeds", 
+            "Riparian", 
+            "Firescar", 
+            "Island interior",
+            "Acacia woodlands", 
+            "Acacia shrublands",
+            "Acacia grasslands", 
+            "Short mopane", 
+            "Mixed mopane",
+            "Exposed soils"
         ]
         rgb_bands = [0, 1, 2]  # to be edited
         undefined_label_index = 0

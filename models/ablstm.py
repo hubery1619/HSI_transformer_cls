@@ -137,6 +137,27 @@ def ablstm(dataset, patch_size):
             BiLSTM(hidden_size=64, num_layers=2, dropout=0.5, n_class=15)
             )  
 
+    elif dataset == 'indian':
+        model= nn.Sequential(
+            SpatialAttention(input_c=200, patch_size=patch_size), 
+            SpectralAttention(), 
+            BiLSTM(hidden_size=64, num_layers=2, dropout=0.5, n_class=16)
+            )  
+
+    elif dataset == 'ksc':
+        model= nn.Sequential(
+            SpatialAttention(input_c=176, patch_size=patch_size), 
+            SpectralAttention(), 
+            BiLSTM(hidden_size=64, num_layers=2, dropout=0.5, n_class=13)
+            )  
+
+    elif dataset == 'bot':
+        model= nn.Sequential(
+            SpatialAttention(input_c=145, patch_size=patch_size), 
+            SpectralAttention(), 
+            BiLSTM(hidden_size=64, num_layers=2, dropout=0.5, n_class=14)
+            )  
+
     elif dataset == 'pu':
         model= nn.Sequential(
             SpatialAttention(input_c=103, patch_size=patch_size), 

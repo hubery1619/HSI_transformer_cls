@@ -110,8 +110,17 @@ def dffn(dataset, patch_size):
     elif dataset == 'hu':
         model = DFFN(bands=144, classes=15, layers_num=[4,4,4])
 
+    elif dataset == 'bot':
+        model = DFFN(bands=145, classes=14, layers_num=[4,4,4])
+
     elif dataset == 'pu':
         model = DFFN(bands=103, classes=9, layers_num=[4,4,4])
+
+    elif dataset == 'indian':
+        model = DFFN(bands=200, classes=16, layers_num=[4,4,4])
+
+    elif dataset == 'ksc':
+        model = DFFN(bands=176, classes=13, layers_num=[4,4,4])
 
     elif dataset == 'whulk':
         model = DFFN(bands=270, classes=9, layers_num=[4,4,4]) 

@@ -185,8 +185,14 @@ def ssftt(dataset, patch_size):
         model = SSFTTnet(n_bands=204, num_classes=16)
     elif dataset == 'hu':
         model = SSFTTnet(n_bands=144, num_classes=15)
+    elif dataset == 'bot':
+        model = SSFTTnet(n_bands=145, num_classes=14)
     elif dataset == 'pu':
         model = SSFTTnet(n_bands=103, num_classes=9)
+    elif dataset == 'ksc':
+        model = SSFTTnet(n_bands=176, num_classes=13)
+    elif dataset == 'indian':
+        model = SSFTTnet(n_bands=200, num_classes=16)
     elif dataset == 'whulk':
         model = SSFTTnet(n_bands=270, num_classes=9)  
     elif dataset == 'hrl':

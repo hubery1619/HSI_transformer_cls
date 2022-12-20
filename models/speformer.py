@@ -228,6 +228,21 @@ def speformer(dataset, patch_size):
             mode = "CAF"
         )
 
+    elif dataset == 'bot':
+        model = ViT(
+            image_size=patch_size, 
+            near_band=3, 
+            num_patches=145, 
+            num_classes=14,
+            dim = 64,
+            depth = 5,
+            heads = 4,
+            mlp_dim = 8,
+            dropout = 0.1,
+            emb_dropout = 0.1,
+            mode = "CAF"
+        )
+
     elif dataset == 'pu':
         model = ViT(
             image_size=patch_size, 
@@ -249,6 +264,36 @@ def speformer(dataset, patch_size):
             near_band=3,
             num_patches=270, 
             num_classes=9,
+            dim = 64,
+            depth = 5,
+            heads = 4,
+            mlp_dim = 8,
+            dropout = 0.1,
+            emb_dropout = 0.1,
+            mode = "CAF"
+        )
+
+    elif dataset == 'indian':
+        model = ViT(
+            image_size=patch_size,
+            near_band=3,
+            num_patches=200, 
+            num_classes=16,
+            dim = 64,
+            depth = 5,
+            heads = 4,
+            mlp_dim = 8,
+            dropout = 0.1,
+            emb_dropout = 0.1,
+            mode = "CAF"
+        )
+
+    elif dataset == 'ksc':
+        model = ViT(
+            image_size=patch_size,
+            near_band=3,
+            num_patches=176, 
+            num_classes=13,
             dim = 64,
             depth = 5,
             heads = 4,

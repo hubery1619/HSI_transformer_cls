@@ -18,13 +18,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="run patch-based HSI classification")
     parser.add_argument("--model", type=str, default='cnn3d')
     parser.add_argument("--dataset_name", type=str, default="hu")
+    parser.add_argument("--Trans_type", type=str, default="PixelConvBlock_ChannelMultiHeadBlockUpdate")
     parser.add_argument("--dataset_dir", type=str, default="./datasets")
     parser.add_argument("--device", type=str, default="0")
     parser.add_argument("--patch_size", type=int, default=7)
     parser.add_argument("--num_run", type=int, default=5) 
     parser.add_argument("--epoch", type=int, default=200)    
     parser.add_argument("--bs", type=int, default=128)  # bs = batch size  
-    parser.add_argument("--ratio", type=float, default=0.8)
+    parser.add_argument("--ratio", type=float, default=0.2)
     parser.add_argument('--smoothing', type=float, default=0.1, help='Label smoothing (default: 0.1)')
     parser.add_argument('--disjoint', action='store_false')  # disjoint the training patch and testing patch  
 
@@ -51,11 +52,14 @@ if __name__ == "__main__":
     # load data
     image, gt, labels = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
 
-    # load training + validation dataset (TR_label.mat)
-    image, gt_TR_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TRLabel.mat", mat_name = 'TRLabel')
+    # ###### houston dataset with training and testing split in advance
+    # # load training + validation dataset (TR_label.mat)
+    # image, gt_TR_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TRLabel.mat", mat_name = 'TRLabel')
 
-    # load training + validation dataset (TR_label.mat)
-    image, gt_TS_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TSLabel.mat", mat_name = 'TSLabel')
+    # # load training + validation dataset (TR_label.mat)
+    # image, gt_TS_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TSLabel.mat", mat_name = 'TSLabel')
+    # ###### houston dataset with training and testing split in advance
+
 
     num_classes = len(labels)
     num_bands = image.shape[-1]
@@ -69,7 +73,12 @@ if __name__ == "__main__":
 
     
     metric_output_dir = "./outout_metrics/" + opts.model + '/' + opts.dataset_name 
-    metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_metric_output.txt'
+
+    if opts.model == 'proposed':
+        metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_' + str(opts.Trans_type) + '_metric_output.txt'
+    else:
+        metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_metric_output.txt'
+
 
 
 
@@ -90,9 +99,10 @@ if __name__ == "__main__":
 
             # get train_gt, val_gt and test_gt
 
-            test_gt = gt_TS_label
-            train_gt, val_gt = sample_gt(gt_TR_label, training_split, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
-
+            ###### houston dataset with training and testing split in advance
+            # test_gt = gt_TS_label
+            # train_gt, val_gt = sample_gt(gt_TR_label, training_split, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+            ###### houston dataset with training and testing split in advance
 
             # val_gt, test_gt = sample_gt(gt_TS_label, 0.1, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
             # train_gt = gt_TR_label
@@ -106,6 +116,10 @@ if __name__ == "__main__":
             #     trainval_gt, test_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
             #     train_gt, val_gt = sample_gt(trainval_gt, 0.5, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
             #     del trainval_gt
+
+            trainval_gt, test_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+            train_gt, val_gt = sample_gt(trainval_gt, 0.5, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
+            del trainval_gt
 
             train_set = HSIDataset(image, train_gt, patch_size=opts.patch_size, data_aug=True)
             val_set = HSIDataset(image, val_gt, patch_size=opts.patch_size, data_aug=False)

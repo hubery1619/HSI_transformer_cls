@@ -575,16 +575,16 @@ class BasicLayer(nn.Module):
     def __init__(self, dim=256, num_heads_channel=1, num_heads_spatial=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
         super().__init__()
 
-        # build blocks
-        self.blocks = nn.ModuleList([PixelConvBlockNoAttention(
-            dim=dim, 
-            num_heads=num_heads_channel,
-            mlp_ratio=mlp_ratio,
-            patch_size=patch_size,
-            drop=0., 
-            attn_drop=0.,
-            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-            qkv_bias=qkv_bias) for j in range(depth)])
+        ####build blocks
+        # self.blocks = nn.ModuleList([PixelConvBlockNoAttention(
+        #     dim=dim, 
+        #     num_heads=num_heads_channel,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias) for j in range(depth)])
 
 
         # self.blocks = nn.ModuleList([ChannelBlock(
@@ -599,24 +599,24 @@ class BasicLayer(nn.Module):
         #     for j in range(depth)])
 
 
-        # self.blocks = nn.ModuleList([PixelConvBlock(
-        #     dim=dim, 
-        #     num_heads=num_heads_channel,
-        #     mlp_ratio=mlp_ratio,
-        #     patch_size=patch_size,
-        #     drop=0., 
-        #     attn_drop=0.,
-        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-        #     qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlockUpdate(
-        #     dim=dim, 
-        #     num_heads=num_heads_spatial,
-        #     mlp_ratio=mlp_ratio,
-        #     patch_size=patch_size,
-        #     drop=0., 
-        #     attn_drop=0.,
-        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-        #     qkv_bias=qkv_bias)
-        #     for j in range(depth)])
+        self.blocks = nn.ModuleList([PixelConvBlock(
+            dim=dim, 
+            num_heads=num_heads_channel,
+            mlp_ratio=mlp_ratio,
+            patch_size=patch_size,
+            drop=0., 
+            attn_drop=0.,
+            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+            qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlockUpdate(
+            dim=dim, 
+            num_heads=num_heads_spatial,
+            mlp_ratio=mlp_ratio,
+            patch_size=patch_size,
+            drop=0., 
+            attn_drop=0.,
+            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+            qkv_bias=qkv_bias)
+            for j in range(depth)])
 
 
         # self.blocks = nn.ModuleList([PixelConvBlock(
@@ -659,8 +659,8 @@ class TokenEmbedding(nn.Module):
     def __init__(self, in_feature_map_size=7, in_chans=3, embed_dim=128, n_groups=1, patch_norm_flag=False):
         super().__init__()
         self.ifm_size = in_feature_map_size
-        # self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
-        self.proj = ODConv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
+        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
+        # self.proj = ODConv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
         self.batch_norm = nn.BatchNorm2d(embed_dim)
         self.relu = nn.ReLU(inplace=True)
         self.patch_norm_flag = patch_norm_flag
@@ -795,12 +795,18 @@ def proposed(dataset, patch_size):
         model = HyperTransformer(img_size=patch_size, in_chans=204, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'hu':
         model = HyperTransformer(img_size=patch_size, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+    elif dataset == 'indian':
+        model = HyperTransformer(img_size=patch_size, in_chans=200, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+    elif dataset == 'bot':
+        model = HyperTransformer(img_size=patch_size, in_chans=145, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'pu':
-        model = HyperTransformer(img_size=patch_size, in_chans=103, num_classes=9, n_groups=[2, 2, 2], depths=[1, 2, 1])
+        model = HyperTransformer(img_size=patch_size, in_chans=103, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+    elif dataset == 'ksc':
+        model = HyperTransformer(img_size=patch_size, in_chans=176, num_classes=13, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'whulk':
-        model = HyperTransformer(img_size=patch_size, in_chans=270, num_classes=9, n_groups=[2, 2, 2], depths=[2, 2, 1])
+        model = HyperTransformer(img_size=patch_size, in_chans=270, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'hrl':
-        model = HyperTransformer(img_size=patch_size, in_chans=176, num_classes=14, n_groups=[4, 4, 4], depths=[1, 2, 1])
+        model = HyperTransformer(img_size=patch_size, in_chans=176, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     return model
 
 if __name__ == "__main__":

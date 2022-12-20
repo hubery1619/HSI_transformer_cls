@@ -96,6 +96,12 @@ def m3ddcnn(dataset, patch_size):
         model = M3DDCNN(input_channels=204, n_classes=16, patch_size=patch_size)
     elif dataset == 'hu':
         model = M3DDCNN(input_channels=144, n_classes=15, patch_size=patch_size)
+    elif dataset == 'bot':
+        model = M3DDCNN(input_channels=145, n_classes=14, patch_size=patch_size)
+    elif dataset == 'indian':
+        model = M3DDCNN(input_channels=200, n_classes=16, patch_size=patch_size)
+    elif dataset == 'ksc':
+        model = M3DDCNN(input_channels=176, n_classes=13, patch_size=patch_size)
     elif dataset == 'pu':
         model = M3DDCNN(input_channels=103, n_classes=9, patch_size=patch_size)
     elif dataset == 'whulk':
