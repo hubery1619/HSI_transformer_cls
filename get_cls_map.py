@@ -53,6 +53,45 @@ def classification_map(map, ground_truth, dpi, save_path):
     ax.yaxis.set_visible(False)
     fig.add_axes(ax)
 
+
+
+    # ### add the legend ###
+    # # https://stackoverflow.com/questions/25482876/how-to-add-legend-to-imshow-in-matplotlib
+    # labels = {
+    #         0: "Undefined", 
+    #         1: "Healthy grass",
+    #         2: "Stressed grass",
+    #         3: "Synthetic grass",
+    #         4: "Trees",
+    #         5: "Soil",
+    #         6: "Water",
+    #         7: "Residential",
+    #         8: "Commercial",
+    #         9: "Road",
+    #         10: "Highway",
+    #         11: "Railway",
+    #         12: "Parking Lot 1",
+    #         13: "Parking Lot 2",
+    #         14: "Tennis Court",
+    #         15:"Running Track"}  
+    # cmap = {0: np.array([0, 0, 0]) / 255.,
+    #         1: np.array([147, 67, 46]) / 255.,
+    #         2: 
+    #         3:
+    #         4:
+    #         5:
+    #         6:
+    #         7:
+    #         8:
+    #         9:
+    #         10:
+    #         11:
+    # }
+
+    # patches =[mpatches.Patch(color=cmap[i],label=labels[i]) for i in cmap]
+    # ax.legend(handles=labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
+    # ### add the legend ###
+
     ax.imshow(map)
     fig.savefig(save_path, dpi=dpi)
 
@@ -69,7 +108,7 @@ def get_cls_map(y):
     gt_re = np.reshape(y_gt, (y.shape[0], y.shape[1], 3))
 
     classification_map(gt_re, y, 300,
-                       'classification_maps/' + 'TRLabel_gt_commercial.png')
+                       'classification_maps/' + 'gt.png')
     print('------Get classification maps successful-------')
 
 
@@ -78,11 +117,13 @@ def get_cls_map(y):
 
 if __name__ == "__main__":
 
-    labels = sio.loadmat('./datasets/hu/TRLabel.mat')['TRLabel']
+    labels = sio.loadmat('./datasets/hu/gt.mat')['gt']
 
-    temp_arr_0 = np.zeros((labels.shape)).astype(int)
+    # temp_arr_0 = np.zeros((labels.shape)).astype(int)
 
-    #### commercial = 8, Highway = 10,  Parking lot 1 = 12
-    temp_arr_0[labels == 8] = 8    
+    # #### commercial = 8, Highway = 10,  Parking lot 1 = 12
+    # temp_arr_0[labels == 8] = 8    
 
-    get_cls_map(temp_arr_0)
+    # get_cls_map(temp_arr_0)
+
+    get_cls_map(labels)

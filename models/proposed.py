@@ -171,7 +171,7 @@ def conv_1x1_bn(inp, oup):
 
 
 class MBConv(nn.Module):
-    def __init__(self, inp, oup, stride=1, expand_ratio=2, use_se=False):
+    def __init__(self, inp, oup, stride=1, expand_ratio=4, use_se=False):
         super(MBConv, self).__init__()
         assert stride in [1, 2]
 
@@ -362,6 +362,60 @@ class ChannelMultiHeadBlockUpdate(nn.Module):
         return x
 
 
+class ChannelMultiHeadBlock_Conv_Update(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1):
+        super().__init__()
+        self.init_values = 1e-4
+        self.dim_transpose = patch_size*patch_size
+        self.head_channel = dim
+        # self.per_channel = 16
+        self.per_channel = math.ceil(self.dim_transpose / num_heads)
+        self.channel_pad = self.per_channel * num_heads
+        self.channel_rep_pad = nn.ReplicationPad1d(padding=(0,self.channel_pad-self.dim_transpose))
+        # num_heads = self.head_channel/self.per_channel
+        self.norm1 = nn.LayerNorm(self.channel_pad)
+        self.attn = Attention(self.channel_pad, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(self.channel_pad)
+        mlp_hidden_dim = int(self.channel_pad * mlp_ratio)
+        self.mlp = Mlp(in_features=self.channel_pad, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.patch_size = patch_size
+        self.conv_branch = nn.Sequential(
+                    nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
+                    nn.BatchNorm2d(mlp_hidden_dim),
+                    nn.SiLU(inplace=True),
+                    nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
+                    )
+        self.gamma_2 = nn.Parameter(self.init_values * torch.ones((self.channel_pad)),requires_grad=True)
+
+
+    def forward(self, x):
+        # convolution branch
+        x1 = x
+        B = x1.shape[0]
+        # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
+        convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
+
+        # self-attention branch
+        x = x.transpose(1, 2)
+        x = self.channel_rep_pad(x)
+        # B_channel, N_channel, C_channel = x.shape
+        # x = x.view(B_channel, self.per_channel, N_channel//self.per_channel, C_channel)
+        # x = x.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)
+        x = x + self.drop_path(self.attn(self.norm1(x)))
+        # x = x + self.gamma_2 * convX.transpose(1, 2)
+        x = x + convX.transpose(1, 2)
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        # B_merge = int(x.shape[0])
+        # x = x.view(B_channel, B_merge//B_channel, self.per_channel, C_channel)
+        # x = x.permute(0, 3, 1, 2).contiguous().view(B_channel, C_channel, -1)
+        x = x.transpose(1, 2)
+        x = x[:, :self.dim_transpose, :]
+        #x = x.transpose(1, 2)
+        return x
+
+
 # add convolution branch in Pixel-level attention module 
 class PixelConvBlock(nn.Module):
     def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1, depConv_flag=False):
@@ -404,8 +458,8 @@ class PixelConvBlock(nn.Module):
         x = x + self.drop_path(self.attn(self.norm1(x)))
 
         # merge convolution branch and self_attention branch
-        x = x + self.gamma_1 * convX
-
+        # x = x + self.gamma_1 * convX
+        x = x + convX
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
         return x
@@ -450,7 +504,8 @@ class PixelConvBlockNoAttention(nn.Module):
         # x = x + self.drop_path(self.attn(self.norm1(x)))
 
         # merge convolution branch and self_attention branch
-        x = x + self.gamma_1 * convX
+        # x = x + self.gamma_1 * convX
+        x = x + convX
 
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
@@ -572,8 +627,231 @@ class BasicLayer(nn.Module):
     
     
     """
-    def __init__(self, dim=256, num_heads_channel=1, num_heads_spatial=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
+    def __init__(self, dim=256, attention_type=0, num_heads_channel=1, num_heads_spatial=1, depth=2, patch_size=7, mlp_ratio=1, drop=0., attn_drop=0., drop_path=0., qkv_bias=True):
         super().__init__()
+
+        if attention_type == 0:
+            self.blocks = nn.ModuleList([PixelConvBlockNoAttention(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) for j in range(depth)])
+
+        elif attention_type == 1:
+            self.blocks = nn.ModuleList([PixelBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) for j in range(depth)])
+
+        elif attention_type == 2:
+            self.blocks = nn.ModuleList([ChannelMultiHeadBlockUpdate(
+            dim=dim, 
+            num_heads=num_heads_spatial,
+            mlp_ratio=mlp_ratio,
+            patch_size=patch_size,
+            drop=0., 
+            attn_drop=0.,
+            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+            qkv_bias=qkv_bias)
+            for j in range(depth)])
+
+        elif attention_type == 3:
+            self.blocks = nn.ModuleList([PixelBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlockUpdate(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+        elif attention_type == 4:
+            self.blocks = nn.ModuleList([PixelBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 1 else ChannelMultiHeadBlockUpdate(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+        elif attention_type == 5:
+            self.blocks = nn.ModuleList([PixelConvBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlock_Conv_Update(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+    
+        elif attention_type == 6:
+            self.blocks = nn.ModuleList([PixelConvBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 1 else ChannelMultiHeadBlock_Conv_Update(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+
+        elif attention_type == 7:
+            self.blocks = nn.ModuleList([PixelConvBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+        elif attention_type == 8:
+            self.blocks = nn.ModuleList([ChannelMultiHeadBlock_Conv_Update(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+        elif attention_type == 9:
+            self.blocks = nn.ModuleList([PixelConvBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlockUpdate(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+    
+        elif attention_type == 10:
+            self.blocks = nn.ModuleList([PixelConvBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 1 else ChannelMultiHeadBlockUpdate(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+        elif attention_type == 11:
+            self.blocks = nn.ModuleList([PixelBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlock_Conv_Update(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+        elif attention_type == 12:
+            self.blocks = nn.ModuleList([PixelBlock(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) if j % 2 == 1 else ChannelMultiHeadBlock_Conv_Update(
+                dim=dim, 
+                num_heads=num_heads_spatial,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias)
+                for j in range(depth)])
+
+        else:
+            print("The selection of the transformer block is wrong!!!")
+
 
         ####build blocks
         # self.blocks = nn.ModuleList([PixelConvBlockNoAttention(
@@ -599,24 +877,37 @@ class BasicLayer(nn.Module):
         #     for j in range(depth)])
 
 
-        self.blocks = nn.ModuleList([PixelConvBlock(
-            dim=dim, 
-            num_heads=num_heads_channel,
-            mlp_ratio=mlp_ratio,
-            patch_size=patch_size,
-            drop=0., 
-            attn_drop=0.,
-            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-            qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlockUpdate(
-            dim=dim, 
-            num_heads=num_heads_spatial,
-            mlp_ratio=mlp_ratio,
-            patch_size=patch_size,
-            drop=0., 
-            attn_drop=0.,
-            drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
-            qkv_bias=qkv_bias)
-            for j in range(depth)])
+        # self.blocks = nn.ModuleList([PixelConvBlock(
+        #     dim=dim, 
+        #     num_heads=num_heads_channel,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias) if j % 2 == 0 else ChannelMultiHeadBlockUpdate(
+        #     dim=dim, 
+        #     num_heads=num_heads_spatial,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias)
+        #     for j in range(depth)])
+
+
+
+        # self.blocks = nn.ModuleList([ChannelMultiHeadBlock_Conv_Update(
+        #     dim=dim, 
+        #     num_heads=num_heads_spatial,
+        #     mlp_ratio=mlp_ratio,
+        #     patch_size=patch_size,
+        #     drop=0., 
+        #     attn_drop=0.,
+        #     drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+        #     qkv_bias=qkv_bias)
+        #     for j in range(depth)])
 
 
         # self.blocks = nn.ModuleList([PixelConvBlock(
@@ -688,7 +979,7 @@ class TokenEmbedding(nn.Module):
 
 
 class HyperTransformer(nn.Module):
-    def __init__(self, img_size=224, in_chans=3, num_classes=1000, num_stages=4, 
+    def __init__(self, img_size=224, block_type=0, in_chans=3, num_classes=1000, num_stages=4, 
                 n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads_channel=[8, 4, 2, 2], num_heads_spatial=[1, 1, 1, 1], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], qkv_bias=True, ape=False, patch_norm=False, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1):
         super().__init__()
 
@@ -696,6 +987,7 @@ class HyperTransformer(nn.Module):
         self.num_layers = len(depths)
         self.ape = ape
         self.img_size = img_size
+        self.block_type = block_type
         
         new_bands = math.ceil(in_chans / n_groups[0]) * n_groups[0]
         self.pad = nn.ReplicationPad3d((0, 0, 0, 0, 0, new_bands - in_chans))
@@ -716,6 +1008,7 @@ class HyperTransformer(nn.Module):
 
         for i_layer in range(self.num_layers):
             attention_layer = BasicLayer(dim=embed_dims[i_layer], 
+                                        attention_type = self.block_type,
                                         num_heads_channel=num_heads_channel[i_layer], 
                                         num_heads_spatial=num_heads_spatial[i_layer], 
                                         depth=depths[i_layer], 
@@ -789,24 +1082,24 @@ class HyperTransformer(nn.Module):
         return x
 
 
-def proposed(dataset, patch_size):
+def proposed(dataset, patch_size, trans_type):
     model = None
     if dataset == 'sa':
-        model = HyperTransformer(img_size=patch_size, in_chans=204, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=204, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'hu':
-        model = HyperTransformer(img_size=patch_size, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'indian':
-        model = HyperTransformer(img_size=patch_size, in_chans=200, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=200, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'bot':
-        model = HyperTransformer(img_size=patch_size, in_chans=145, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=145, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'pu':
-        model = HyperTransformer(img_size=patch_size, in_chans=103, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=103, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'ksc':
-        model = HyperTransformer(img_size=patch_size, in_chans=176, num_classes=13, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=176, num_classes=13, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'whulk':
-        model = HyperTransformer(img_size=patch_size, in_chans=270, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=270, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'hrl':
-        model = HyperTransformer(img_size=patch_size, in_chans=176, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=176, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     return model
 
 if __name__ == "__main__":

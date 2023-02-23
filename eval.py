@@ -20,13 +20,15 @@ def color_results(arr2d, palette):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="HSI classification evaluation")
-    parser.add_argument("--model", type=str, default='cnn3d')
-    parser.add_argument("--dataset_name", type=str, default="sa")
+    parser.add_argument("--model", type=str, default='ssftt')
+    parser.add_argument("--dataset_name", type=str, default="hu")
     parser.add_argument("--dataset_dir", type=str, default="./datasets")
     parser.add_argument("--device", type=str, default="0")
     parser.add_argument("--patch_size", type=int, default=7)
-    parser.add_argument("--weights", type=str, default="./checkpoints/cnn3d/sa/0")
+    parser.add_argument("--weights", type=str, default="./checkpoints/ssftt/hu/0")
     parser.add_argument("--outputs", type=str, default="./results")
+    parser.add_argument("--trans_type", type=int, default=0)
+
 
     opts = parser.parse_args()
 
@@ -42,11 +44,11 @@ if __name__ == "__main__":
     num_bands = image.shape[-1]
 
     palette = {0: (0, 0, 0)}
-    for k, color in enumerate(sns.color_palette("hls", num_classes + 1)):
+    for k, color in enumerate(sns.color_palette("hls", num_classes + 1)):    # hls changed to Paired
         palette[k + 1] = tuple(np.asarray(255 * np.array(color), dtype='uint8'))
 
     # load model and weights
-    model = get_model(opts.model, opts.dataset_name, opts.patch_size)
+    model = get_model(opts.model, opts.dataset_name, opts.patch_size, opts.trans_type)
     print('loading weights from %s' % opts.weights + '/model_best.pth')
     model = model.to(device)
     model.load_state_dict(torch.load(os.path.join(opts.weights, 'model_best.pth')))
@@ -58,7 +60,7 @@ if __name__ == "__main__":
 
     run_results = metrics(prediction, gt, n_classes=num_classes)
 
-    prediction[gt < 0] = -1
+    # prediction[gt < 0] = -1   # mask the no label points
 
     # color results
     colored_gt = color_results(gt+1, palette)
@@ -67,8 +69,8 @@ if __name__ == "__main__":
     outfile = os.path.join(opts.outputs, opts.dataset_name,  opts.model)
     os.makedirs(outfile, exist_ok=True)
 
-    imageio.imsave(os.path.join(outfile, opts.dataset_name + '_gt.eps'), colored_gt)  # eps or png
-    imageio.imsave(os.path.join(outfile, opts.dataset_name+'_' + opts.model + '_out.eps'), colored_pred)  # or png
+    imageio.imsave(os.path.join(outfile, opts.dataset_name + '_gt.png'), colored_gt)  # eps or png
+    imageio.imsave(os.path.join(outfile, opts.dataset_name+'_' + opts.model + '_out.png'), colored_pred)  # or png
 
     show_results(run_results, label_values=labels)
     del model

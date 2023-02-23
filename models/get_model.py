@@ -8,7 +8,7 @@ from .ssftt import ssftt
 from .proposed import proposed
 
 
-def get_model(model_name, dataset_name, patch_size):
+def get_model(model_name, dataset_name, patch_size, trans_type):
     # example: model_name='cnn3d', dataset_name='pu'
     if model_name == 'm3ddcnn':
         model = m3ddcnn(dataset_name, patch_size)
@@ -29,7 +29,7 @@ def get_model(model_name, dataset_name, patch_size):
         model = speformer(dataset_name, patch_size) 
 
     elif model_name == 'proposed':
-        model = proposed(dataset_name, patch_size)
+        model = proposed(dataset_name, patch_size, trans_type)
 
     elif model_name == 'ssftt':
         model = ssftt(dataset_name, patch_size)

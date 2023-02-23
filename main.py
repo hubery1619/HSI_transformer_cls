@@ -18,10 +18,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="run patch-based HSI classification")
     parser.add_argument("--model", type=str, default='cnn3d')
     parser.add_argument("--dataset_name", type=str, default="hu")
-    parser.add_argument("--Trans_type", type=str, default="PixelConvBlock_ChannelMultiHeadBlockUpdate")
+    # parser.add_argument("--Trans_type", type=str, default="PixelConvBlock_ChannelMultiHeadBlockUpdate")
     parser.add_argument("--dataset_dir", type=str, default="./datasets")
     parser.add_argument("--device", type=str, default="0")
     parser.add_argument("--patch_size", type=int, default=7)
+    parser.add_argument("--trans_type", type=int, default=0)
     parser.add_argument("--num_run", type=int, default=5) 
     parser.add_argument("--epoch", type=int, default=200)    
     parser.add_argument("--bs", type=int, default=128)  # bs = batch size  
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     num_bands = image.shape[-1]
 
     # random seeds
-    seeds = [202201, 202202, 202203, 202204, 202205]
+    seeds = [1, 11, 21, 31, 41]
 
     # empty list to storing results
     results = []
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     metric_output_dir = "./outout_metrics/" + opts.model + '/' + opts.dataset_name 
 
     if opts.model == 'proposed':
-        metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_' + str(opts.Trans_type) + '_metric_output.txt'
+        metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_' + 'trans_type:' + str(opts.trans_type) + '_metric_output.txt'
     else:
         metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_metric_output.txt'
 
@@ -128,7 +129,7 @@ if __name__ == "__main__":
             val_loader = torch.utils.data.DataLoader(val_set, opts.bs, drop_last=True, shuffle=False)
 
             # load model and loss
-            model = get_model(opts.model, opts.dataset_name, opts.patch_size)
+            model = get_model(opts.model, opts.dataset_name, opts.patch_size, opts.trans_type)
 
             if run == 0:
                 split_info_print(train_gt, val_gt, test_gt, labels)
