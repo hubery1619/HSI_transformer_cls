@@ -35,20 +35,21 @@ from tqdm import tqdm
 from pathlib import Path
 
 
-def one_hot(x, num_classes, on_value=1., off_value=0., device='cuda'):
-    x = x.long().view(-1, 1)
-    return torch.full((x.size()[0], num_classes), off_value, device=device).scatter_(1, x, on_value)
+# def one_hot(x, num_classes, on_value=1., off_value=0., device='cuda'):
+#     x = x.long().view(-1, 1)
+#     return torch.full((x.size()[0], num_classes), off_value, device=device).scatter_(1, x, on_value)
 
 
-def mixup_target(target, num_classes, lam=1., smoothing=0.0, device='cuda'):
-    off_value = smoothing / num_classes
-    on_value = 1. - smoothing + off_value
-    y1 = one_hot(target, num_classes, on_value=on_value, off_value=off_value, device=device)
-    y2 = one_hot(target.flip(0), num_classes, on_value=on_value, off_value=off_value, device=device)
-    return y1 * lam + y2 * (1. - lam)
+# def mixup_target(target, num_classes, lam=1., smoothing=0.0, device='cuda'):
+#     off_value = smoothing / num_classes
+#     on_value = 1. - smoothing + off_value
+#     y1 = one_hot(target, num_classes, on_value=on_value, off_value=off_value, device=device)
+#     y2 = one_hot(target.flip(0), num_classes, on_value=on_value, off_value=off_value, device=device)
+#     return y1 * lam + y2 * (1. - lam)
 
 
-mixup_function = 1 
+# mixup_function = 1 
+
 
 
 
@@ -102,8 +103,11 @@ if __name__ == "__main__":
     # ###### houston dataset with training and testing split in advance
 
 
-    num_classes = len(labels)
+    num_classes_la = len(labels)
     num_bands = image.shape[-1]
+    mixup_function = Mixup(num_classes=num_classes_la, mixup_alpha=1.0, cutmix_alpha=0.8, prob=1.0, label_smoothing=0.1)
+
+
 
     # random seeds
     # seeds = [1, 11, 21, 31, 41]
@@ -200,8 +204,10 @@ if __name__ == "__main__":
 
                 # transform the ys form to one-hot vector
                 print("xs shape = ", xs.shape)
-                print("ys shape = ", ys.shape)
-                ys = mixup_target(ys, num_classes, lam=0.9, smoothing=opts.smoothing, device=xs.device)
+                print("ys shape = ", ys.type())
+                # ys = mixup_target(ys, num_classes, lam=1., smoothing=opts.smoothing, device=xs.device)
+                xs, ys = mixup_function(xs, ys)
+
                 # xs = xs.squeeze(1)
 
                 print("xs shape after transform = ", xs.shape)
@@ -222,9 +228,9 @@ if __name__ == "__main__":
     time_consume = end_time-start_time
     print("Calulation time：%s" %time_consume)
     uid = "691cc9a9e4"
-    leaderboard_path = os.path.join("leaderboard", "logs", opts.dataset_name, model.name)
+    leaderboard_path = os.path.join("leaderboard", "logs", opts.dataset_name, opts.model)
     Path(leaderboard_path).mkdir(parents=True, exist_ok=True)
-    metrics_dir = os.path.join(leaderboard_path, "%s_%s_%s_x%s_hessian_matrics.csv" % (opts.dataset_name, model.name, uid, int(1 / 1.0)))
+    metrics_dir = os.path.join(leaderboard_path, "%s_%s_%s_x%s_hessian_matrics.csv" % (opts.dataset_name, opts.model, uid, int(1 / 1.0)))
     metrics_list = max_eigens
     # tests.save_metrics(metrics_dir, metrics_list)
     f = open(metrics_dir, "w")

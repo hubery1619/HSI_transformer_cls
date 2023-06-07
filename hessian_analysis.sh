@@ -230,7 +230,7 @@
 # python eval.py --model speformer --dataset_name hu --device 0 --weights ./checkpoints/speformer/hu/0
 
 
-# python hessian_matrics.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu/0
+python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu/0
 
 
 
