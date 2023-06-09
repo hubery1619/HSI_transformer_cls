@@ -28,7 +28,7 @@ from scipy.stats import gaussian_kde
 
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/proposed/hu_proposed_691cc9a9e4_x1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/proposed/hu_proposed_0_x0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -65,11 +65,11 @@ from sklearn.neighbors import KernelDensity
 # generate a sample
 sample = x1
 # fit density
-model = KernelDensity(bandwidth=5, kernel='gaussian')
+model = KernelDensity(bandwidth=100, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values1 = asarray([value for value in range(int(min(x1)), 1500)])
+values1 = asarray([value for value in range(-1500, 1500)])
 values1 = values1.reshape((len(values1), 1))
 probabilities1 = model.score_samples(values1)
 probabilities1 = exp(probabilities1)
@@ -94,7 +94,7 @@ probabilities1 = exp(probabilities1)
 
 
 fig, ax = plt.subplots(1, 1, figsize=(6.5, 4), dpi=200)
-ax.plot(values1[:], probabilities1, label='ViT')
+ax.plot(values1[:], probabilities1, label='hyper_trans')
 # ax.plot(values2[:], probabilities2, label='ResNet')
 
 
@@ -102,7 +102,7 @@ ax.set_xlabel("Values")
 ax.set_ylabel("Probability")
 # ax.legend(labels=['ViT', 'ResNet'])
 
-save_path = 'output_result/hessian/' + str('hessian') + '_' + 'density_hyper_trans.png'
+save_path = 'output_result/hessian/' + str('hessian') + '_' + 'density_hyper_trans_0.1_50.png'
 fig.savefig(save_path, bbox_inches = 'tight')
 # plt.show()
 

@@ -251,8 +251,26 @@
 # python main.py --model rssan --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.1
 # # python main.py --model ablstm --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2
 # # python main.py --model dffn --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.1
-python main.py --model speformer --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.1
+# python main.py --model speformer --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.1
 # # python main.py --model ssftt --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2
 
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.02 --trans_type 0
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.04 --trans_type 0
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.06 --trans_type 0
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.08 --trans_type 0
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 0
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.4 --trans_type 0
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.6 --trans_type 0
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.8 --trans_type 0
 
 
+
+## sa dataset 0.1
+python main.py --model proposed --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1 --trans_type 0
+python main.py --model m3ddcnn --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
+python main.py --model cnn3d --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
+python main.py --model rssan --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
+# python main.py --model ablstm --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+python main.py --model dffn --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
+python main.py --model speformer --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
+# python main.py --model ssftt --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1

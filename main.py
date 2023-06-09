@@ -147,7 +147,7 @@ if __name__ == "__main__":
                 criterion = nn.CrossEntropyLoss()
 
             # where to save checkpoint model
-            model_dir = "./checkpoints/" + opts.model + '/' + opts.dataset_name + '/' + str(run)
+            model_dir = "./checkpoints/" + opts.model + '/' + opts.dataset_name + '/' + str(opts.ratio) + '/' + str(run)
 
             try:
                 best_OA_validation = train(model, optimizer, criterion, train_loader, val_loader, opts.epoch, model_dir, device, scheduler)
