@@ -164,7 +164,7 @@ if __name__ == "__main__":
                 #     summary(model, torch.zeros((3, 1, num_bands, opts.patch_size, opts.patch_size)))
             
 
-            model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.ratio), str(run), 'model_best.pth')))
+            model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.ratio), str(run), 'model_best.pth')))
             map_location = "cuda" if torch.cuda.is_available() else "cpu"
             model = model.to(map_location)
             
@@ -198,7 +198,7 @@ if __name__ == "__main__":
             dataset_train = train_loader
             weight_decay = 0.0001
 
-
+            # for epoch in range(1, opts.epoch+1):
             for xs, ys in tqdm(dataset_train):
                 # print("ys shape = ", ys.shape)
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     uid = opts.trans_type
     leaderboard_path = os.path.join("leaderboard", "logs", opts.dataset_name, opts.model)
     Path(leaderboard_path).mkdir(parents=True, exist_ok=True)
-    metrics_dir = os.path.join(leaderboard_path, "%s_%s_%s_x%s_hessian_matrics.csv" % (opts.dataset_name, opts.model, uid, training_split))
+    metrics_dir = os.path.join(leaderboard_path, "%s_%s_%s_%s_x%s_hessian_matrics.csv" % (opts.dataset_name, opts.model, uid, opts.epoch, training_split))
     metrics_list = max_eigens
     # tests.save_metrics(metrics_dir, metrics_list)
     f = open(metrics_dir, "w")

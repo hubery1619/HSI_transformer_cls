@@ -222,7 +222,7 @@
 
 
 
-# python eval.py --model proposed --dataset_name hu --device 0 --trans_type 4 --weights ./checkpoints/proposed/hu/0 
+# python eval.py --model proposed --dataset_name hu --device 0 --trans_type 0 --weights ./checkpoints/proposed/hu/300/0.1/0
 # python eval.py --model cnn3d --dataset_name hu --device 0 --weights ./checkpoints/cnn3d/hu/0
 # python eval.py --model dffn --dataset_name hu --device 0 --weights ./checkpoints/dffn/hu/0
 # python eval.py --model m3ddcnn --dataset_name hu --device 0 --weights ./checkpoints/m3ddcnn/hu/0
@@ -265,12 +265,43 @@
 
 
 
-## sa dataset 0.1
-python main.py --model proposed --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1 --trans_type 0
-python main.py --model m3ddcnn --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
-python main.py --model cnn3d --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
-python main.py --model rssan --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
-# python main.py --model ablstm --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
-python main.py --model dffn --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
-python main.py --model speformer --dataset_name sa --epoch 5 --bs 64 --device 0 --ratio 0.1
-# python main.py --model ssftt --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+# ## sa dataset 0.1
+# python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 0
+# python main.py --model m3ddcnn --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+# python main.py --model cnn3d --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+# python main.py --model rssan --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+# # python main.py --model ablstm --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+# python main.py --model dffn --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+# python main.py --model speformer --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+# # python main.py --model ssftt --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1
+
+
+
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 0
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 1
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 2
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 3
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 4
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 5
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 6
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 7
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 8
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 9
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 10
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 11
+python main.py --model proposed --dataset_name bot --epoch 300 --bs 64 --device 0 --ratio 0.2 --trans_type 12
+
+
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 0
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 2
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 3
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 4
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 5
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 6
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 7
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 8
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 9
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 10
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 11
+python main.py --model proposed --dataset_name sa --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 12

@@ -160,7 +160,7 @@ if __name__ == "__main__":
                 #     summary(model, torch.zeros((3, 1, num_bands, opts.patch_size, opts.patch_size)))
             
 
-            model.load_state_dict(torch.load(os.path.join(opts.weights, 'model_best.pth')))
+            model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.ratio), str(run), 'model_best.pth')))
             map_location = "cuda" if torch.cuda.is_available() else "cpu"
             model = model.to(map_location)
             

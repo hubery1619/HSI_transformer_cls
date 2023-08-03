@@ -242,12 +242,31 @@
 # python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
 
 
-python hessian_matrics_version_sota.py --model dffn --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/dffn/hu
-python hessian_matrics_version_sota.py --model cnn3d --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/cnn3d/hu
-python hessian_matrics_version_sota.py --model m3ddcnn --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/m3ddcnn/hu
-python hessian_matrics_version_sota.py --model rssan --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/rssan/hu
-python hessian_matrics_version_sota.py --model speformer --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/speformer/hu
-python hessian_matrics_version_sota.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version_sota.py --model dffn --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/dffn/hu
+# python hessian_matrics_version_sota.py --model cnn3d --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/cnn3d/hu
+# python hessian_matrics_version_sota.py --model m3ddcnn --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/m3ddcnn/hu
+# python hessian_matrics_version_sota.py --model rssan --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/rssan/hu
+# python hessian_matrics_version_sota.py --model speformer --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --weights ./checkpoints/speformer/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.2 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.4 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.6 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.02 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.04 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.06 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 10 --bs 64 --ratio 0.08 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 100 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 200 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
+# python hessian_matrics_version1.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
+
+
+python hessian_matrics_version_sota.py --model dffn --dataset_name hu --epoch 50 --bs 64 --ratio 0.1 --weights ./checkpoints/dffn/hu
+python hessian_matrics_version_sota.py --model cnn3d --dataset_name hu --epoch 50 --bs 64 --ratio 0.1 --weights ./checkpoints/cnn3d/hu
+python hessian_matrics_version_sota.py --model m3ddcnn --dataset_name hu --epoch 50 --bs 64 --ratio 0.1 --weights ./checkpoints/m3ddcnn/hu
+python hessian_matrics_version_sota.py --model rssan --dataset_name hu --epoch 50 --bs 64 --ratio 0.1 --weights ./checkpoints/rssan/hu
+python hessian_matrics_version_sota.py --model speformer --dataset_name hu --epoch 50 --bs 64 --ratio 0.1 --weights ./checkpoints/speformer/hu
+python hessian_matrics_version_sota.py --model proposed --dataset_name hu --epoch 50 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
+
 
 
 

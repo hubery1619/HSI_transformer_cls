@@ -28,7 +28,7 @@ from scipy.stats import gaussian_kde
 
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/dffn/hu_dffn_x0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/proposed/hu_proposed_transtype0_trainingepoch10_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -40,7 +40,7 @@ links_update = np.array(list(map(eval, links_update)))
 x1 = links_update
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/cnn3d/hu_cnn3d_x0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/cnn3d/hu_cnn3d_transtype0_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -52,7 +52,7 @@ links_update = np.array(list(map(eval, links_update)))
 x2 = links_update
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/m3ddcnn/hu_m3ddcnn_x0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/m3ddcnn/hu_m3ddcnn_transtype0_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -64,7 +64,7 @@ links_update = np.array(list(map(eval, links_update)))
 x3 = links_update
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/rssan/hu_rssan_x0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/rssan/hu_rssan_transtype0_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -77,7 +77,7 @@ x4 = links_update
 
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/speformer/hu_speformer_x0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/speformer/hu_speformer_transtype0_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -90,7 +90,7 @@ x5 = links_update
 
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/proposed/hu_proposed_0_x0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/proposed/hu_proposed_transtype0_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -120,7 +120,7 @@ model = KernelDensity(bandwidth=bw, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values1 = asarray([value for value in range(-1500, 1500)])
+values1 = asarray([value for value in range(int(min(x1)), int(max(x1)))])
 values1 = values1.reshape((len(values1), 1))
 probabilities1 = model.score_samples(values1)
 probabilities1 = exp(probabilities1)
@@ -136,7 +136,7 @@ model = KernelDensity(bandwidth=bw, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values2 = asarray([value for value in range(-1500, 1500)])
+values2 = asarray([value for value in range(int(min(x2)), int(max(x2)))])
 values2 = values2.reshape((len(values2), 1))
 probabilities2 = model.score_samples(values2)
 probabilities2 = exp(probabilities2)
@@ -148,7 +148,7 @@ model = KernelDensity(bandwidth=bw, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values3 = asarray([value for value in range(-1500, 1500)])
+values3 = asarray([value for value in range(int(min(x3)), int(max(x3)))])
 values3 = values3.reshape((len(values3), 1))
 probabilities3 = model.score_samples(values3)
 probabilities3 = exp(probabilities3)
@@ -161,7 +161,7 @@ model = KernelDensity(bandwidth=bw, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values4 = asarray([value for value in range(-1500, 1500)])
+values4 = asarray([value for value in range(int(min(x4)), int(max(x4)))])
 values4 = values4.reshape((len(values4), 1))
 probabilities4 = model.score_samples(values4)
 probabilities4 = exp(probabilities4)
@@ -174,7 +174,7 @@ model = KernelDensity(bandwidth=bw, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values5 = asarray([value for value in range(-1500, 1500)])
+values5 = asarray([value for value in range(int(min(x5)), int(max(x5)))])
 values5 = values5.reshape((len(values5), 1))
 probabilities5 = model.score_samples(values5)
 probabilities5 = exp(probabilities5)
@@ -187,7 +187,7 @@ model = KernelDensity(bandwidth=bw, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values6 = asarray([value for value in range(-1500, 1500)])
+values6 = asarray([value for value in range(int(min(x6)), int(max(x6)))])
 values6 = values6.reshape((len(values6), 1))
 probabilities6 = model.score_samples(values6)
 probabilities6 = exp(probabilities6)
@@ -207,7 +207,7 @@ ax.set_xlabel("Values")
 ax.set_ylabel("Probability")
 ax.legend(labels=['DFFN', 'CNN3D', 'M3DCNN', 'RSSAN', 'SpectralFormer', 'Proposed'])
 
-save_path = 'output_result/hessian/' + str('hessian') + '_' + 'density_hyper_trans_0.1_80sota.png'
+save_path = 'output_result/hessian/' + str('hessian') + '_' + 'density_hyper_trans_0.1_80sota_300epoch.png'
 fig.savefig(save_path, bbox_inches = 'tight')
 # plt.show()
 

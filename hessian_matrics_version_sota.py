@@ -164,7 +164,7 @@ if __name__ == "__main__":
                 #     summary(model, torch.zeros((3, 1, num_bands, opts.patch_size, opts.patch_size)))
             
 
-            # model.load_state_dict(torch.load(os.path.join(opts.weights, str(run), 'model_best.pth')))
+            model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.ratio), str(run), 'model_best.pth')))
             map_location = "cuda" if torch.cuda.is_available() else "cpu"
             model = model.to(map_location)
             
@@ -199,39 +199,38 @@ if __name__ == "__main__":
             weight_decay = 0.0001
 
 
-            for epoch in range(1, opts.epoch+1):
-                for xs, ys in tqdm(dataset_train):
-                    # print("ys shape = ", ys.shape)
+            for xs, ys in tqdm(dataset_train):
+                # print("ys shape = ", ys.shape)
 
-                    # transform the ys form to one-hot vector
-                    print("xs shape = ", xs.shape)
-                    print("ys shape = ", ys.type())
-                    # ys = mixup_target(ys, num_classes, lam=1., smoothing=opts.smoothing, device=xs.device)
-                    xs, ys = mixup_function(xs, ys)
+                # transform the ys form to one-hot vector
+                print("xs shape = ", xs.shape)
+                print("ys shape = ", ys.type())
+                # ys = mixup_target(ys, num_classes, lam=1., smoothing=opts.smoothing, device=xs.device)
+                xs, ys = mixup_function(xs, ys)
 
-                    # xs = xs.squeeze(1)
+                # xs = xs.squeeze(1)
 
-                    print("xs shape after transform = ", xs.shape)
-                    print("ys shape after transform = ", ys.shape)
-                    
-                    
-                    # print("ys shape after transform = ", ys.shape)
-                    # if i <= 4:
-                    hessian_comp = hessian(model, criterion, data=(xs, ys), weight_decay=weight_decay, cuda=True)  # measure hessian max eigenvalues with NLL + L2 on data augmented (`transform`) datasets
-                    top_eigenvalues, top_eigenvector = hessian_comp.eigenvalues(top_n=10)  # collect top-5 hessian eigenvaues by using power-iteration (https://en.wikipedia.org/wiki/Power_iteration)
-                    max_eigens = max_eigens + top_eigenvalues  # aggregate top-5 max eigenvalues
-                        # i = i + 1
-                    # else:
-                    #     break
+                print("xs shape after transform = ", xs.shape)
+                print("ys shape after transform = ", ys.shape)
+                
+                
+                # print("ys shape after transform = ", ys.shape)
+                # if i <= 4:
+                hessian_comp = hessian(model, criterion, data=(xs, ys), weight_decay=weight_decay, cuda=True)  # measure hessian max eigenvalues with NLL + L2 on data augmented (`transform`) datasets
+                top_eigenvalues, top_eigenvector = hessian_comp.eigenvalues(top_n=10)  # collect top-5 hessian eigenvaues by using power-iteration (https://en.wikipedia.org/wiki/Power_iteration)
+                max_eigens = max_eigens + top_eigenvalues  # aggregate top-5 max eigenvalues
+                    # i = i + 1
+                # else:
+                #     break
 
 
     end_time = time.time()
     time_consume = end_time-start_time
     print("Calulation time：%s" %time_consume)
-    uid = 'warmup'
+    uid = opts.trans_type
     leaderboard_path = os.path.join("leaderboard", "logs", opts.dataset_name, opts.model)
     Path(leaderboard_path).mkdir(parents=True, exist_ok=True)
-    metrics_dir = os.path.join(leaderboard_path, "%s_%s_%s_x%s_hessian_matrics.csv" % (opts.dataset_name, uid, opts.model, training_split))
+    metrics_dir = os.path.join(leaderboard_path, "%s_%s_transtype%s_trainingepoch%s_trainingratio%s_hessian_matrics.csv" % (opts.dataset_name, opts.model, uid, opts.epoch, training_split))
     metrics_list = max_eigens
     # tests.save_metrics(metrics_dir, metrics_list)
     f = open(metrics_dir, "w")
