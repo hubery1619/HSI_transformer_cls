@@ -1,0 +1,61 @@
+# from PIL import Image, ImageDraw
+
+# # 1. 读取原始PNG图像
+# original_image = Image.open('/home/tirgan/a/liu3044/Project/Group_Transformer_hyper_patch_tgrs/results/hu/dffn/hu_dffn_out.png')
+
+from PIL import Image, ImageDraw
+
+def draw_dashed_line(draw, start, end, fill="black", width=2, dash_length=10, space_length=20):
+    """绘制一个虚线"""
+    x1, y1 = start
+    x2, y2 = end
+    total_length = ((x2-x1)**2 + (y2-y1)**2)**0.5
+    num_dashes = int(total_length / (dash_length + space_length))
+    
+    for i in range(num_dashes):
+        start_fraction = i / num_dashes
+        end_fraction = (i+1) / num_dashes
+        draw.line([(x1 + (x2-x1)*start_fraction, y1 + (y2-y1)*start_fraction),
+                   (x1 + (x2-x1)*end_fraction, y1 + (y2-y1)*end_fraction)],
+                   fill=fill, width=width)
+
+def draw_dashed_rect(draw, bounding_box, fill="black", width=2, dash_length=10, space_length=5):
+    """绘制一个虚线矩形边框"""
+    left, upper, right, lower = bounding_box
+    # 绘制矩形的四条边
+    draw_dashed_line(draw, (left, upper), (right, upper), fill=fill, width=width, dash_length=dash_length, space_length=space_length)
+    draw_dashed_line(draw, (left, lower), (right, lower), fill=fill, width=width, dash_length=dash_length, space_length=space_length)
+    draw_dashed_line(draw, (left, upper), (left, lower), fill=fill, width=width, dash_length=dash_length, space_length=space_length)
+    draw_dashed_line(draw, (right, upper), (right, lower), fill=fill, width=width, dash_length=dash_length, space_length=space_length)
+
+original_image = Image.open('/home/tirgan/a/liu3044/Project/Group_Transformer_hyper_patch_tgrs/results/hu/group_transformer/hu_group_transformer_out.png')
+draw = ImageDraw.Draw(original_image)
+width, height = original_image.size
+# 指定区域：例如左上角的 100x100 像素
+left, upper, right, lower = 0, height//2, 100, height
+
+# 放大指定区域至原图的高度
+aspect_ratio = (right - left) / (lower - upper)
+new_width = int(aspect_ratio * original_image.height)
+cropped_img = original_image.crop((left, upper, right, lower))
+zoomed_img = cropped_img.resize((new_width, original_image.height))
+
+# 创建一个新图像
+margin = 20
+new_image_width = original_image.width + zoomed_img.width + margin
+new_image = Image.new('RGB', (new_image_width, original_image.height), color=(255, 255, 255))
+new_image.paste(original_image, (0, 0))
+new_image.paste(zoomed_img, (original_image.width + margin, 0))
+
+draw = ImageDraw.Draw(new_image)
+
+# 绘制虚线矩形边框
+draw_dashed_rect(draw, [left, upper, right, lower])
+draw_dashed_rect(draw, [original_image.width + margin, 0, new_image_width, original_image.height])
+
+# 从放大图像的两个顶点绘制连线到原始图像的对应区域的两个顶点
+draw_dashed_line(draw, (right, upper), (original_image.width + margin, 0))
+draw_dashed_line(draw, (right, lower), (original_image.width + margin, original_image.height))
+
+# 保存图像
+new_image.save('./zoom_area/hu_group_transformer_out.png')

@@ -1,0 +1,37 @@
+run 1 / 1
+Best validation overall accuracy 0.9171875
+Confusion matrix :
+[[ 230    0   14    0   13    0    0    0    1    0    0    1    0    0]
+ [   0   56    0    0    0    0    0    0    0    0    4    0    0    0]
+ [  18    0  449    0   13    0    1    0    1    5    1    0    0    0]
+ [   5    0    5    2   53    5    1    0    0    0    0    0    0    0]
+ [  21    0    9    0 1211    0    6    4    3    6    1    0    0    0]
+ [   1    0    3    0    0  102    0   10   85    0    0    0    0    0]
+ [   1    0    0    0    2    0  356    2   87    2    0    0    0    0]
+ [   0    0    0    0    0   12   51  667  235    0    0    0    0    0]
+ [   0    0    0    0    8    4    4   57 3073  260    1    7    0    0]
+ [   4    0    6    0   17    0    1    0  215 2258   16    6    0    0]
+ [   0    0    3    0    0    0    0    0    1   38  316    5    0    0]
+ [   0    4    0    0    0    0    0    0    6    2    7  419    0    0]
+ [   0    0    0    0    0    0    0    0    0    0    0    0 1254    0]
+ [   0    0    0    0    0    0    0    0    0    0    0    0    0  406]]---
+Accuracy : 88.86%
+---
+class acc :
+	Dense Urban Fabric: 88.80
+	Mineral Extraction Sites: 93.33
+	Non Irrigated Arable Land: 92.01
+	Fruit Trees: 2.82
+	Olive Groves: 96.03
+	Broad-leaved Forest: 50.75
+	Coniferous Forest: 79.11
+	Mixed Forest: 69.12
+	Dense Sclerophyllous Vegetation: 90.01
+	Sparce Sclerophyllous Vegetation: 89.50
+	Sparcely Vegetated Areas: 87.05
+	Rocks and Sand: 95.66
+	Water: 100.00
+	Coastal Water: 100.00
+---
+AA: 81.01%
+Kappa: 86.69

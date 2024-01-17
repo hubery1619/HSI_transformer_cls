@@ -70,7 +70,7 @@ if __name__ == "__main__":
     os.makedirs(outfile, exist_ok=True)
 
     imageio.imsave(os.path.join(outfile, opts.dataset_name + '_gt.png'), colored_gt)  # eps or png
-    imageio.imsave(os.path.join(outfile, opts.dataset_name+'_' + opts.model + '_out.png'), colored_pred)  # or png
+    imageio.imsave(os.path.join(outfile, opts.dataset_name+'_' + opts.model + '_' + str(opts.trans_type) + '_out.png'), colored_pred)  # or png
 
     show_results(run_results, label_values=labels)
     del model

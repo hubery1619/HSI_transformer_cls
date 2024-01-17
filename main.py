@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data
 from torchsummaryX import summary
+import matplotlib.pyplot as plt
 import os
 
 
@@ -13,6 +14,7 @@ from models.get_model import get_model
 from train import train, test
 from timm.loss import LabelSmoothingCrossEntropy
 
+
 if __name__ == "__main__":
     # fixed means for all models
     parser = argparse.ArgumentParser(description="run patch-based HSI classification")
@@ -21,7 +23,7 @@ if __name__ == "__main__":
     # parser.add_argument("--Trans_type", type=str, default="PixelConvBlock_ChannelMultiHeadBlockUpdate")
     parser.add_argument("--dataset_dir", type=str, default="./datasets")
     parser.add_argument("--device", type=str, default="0")
-    parser.add_argument("--patch_size", type=int, default=7)
+    parser.add_argument("--patch_size", type=int, default=11)
     parser.add_argument("--trans_type", type=int, default=0)
     parser.add_argument("--num_run", type=int, default=5) 
     parser.add_argument("--epoch", type=int, default=200)    
@@ -45,6 +47,7 @@ if __name__ == "__main__":
     #print("disjoint setting = {}".format(opts.disjoint))
     opts.disjoint = False
     training_split = opts.ratio
+    print("The model's type: {}".format(opts.trans_type))
     if opts.disjoint:
         print("{} for training with disjoint sampling".format(opts.ratio))
     else:
@@ -76,7 +79,7 @@ if __name__ == "__main__":
     metric_output_dir = "./outout_metrics/" + opts.model + '/' + opts.dataset_name 
 
     if opts.model == 'proposed':
-        metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_' + 'trans_type:' + str(opts.trans_type) + '_metric_output.txt'
+        metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_' + 'trans_type:' + str(opts.trans_type) + '_' + 'patch_size:' + str(opts.patch_size) + '_metric_output.txt'
     else:
         metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_metric_output.txt'
 
@@ -147,14 +150,51 @@ if __name__ == "__main__":
                 criterion = nn.CrossEntropyLoss()
 
             # where to save checkpoint model
-            model_dir = "./checkpoints/" + opts.model + '/' + opts.dataset_name + '/' + str(opts.epoch) + '/' + str(opts.ratio) + '/' + str(run)
+            model_dir = "./checkpoints/" + opts.model + '/' + opts.dataset_name + '/' + str(opts.epoch) + '/'  + str(opts.trans_type) + '/' + str(opts.ratio) + '/' + str(run)
 
             try:
-                best_OA_validation = train(model, optimizer, criterion, train_loader, val_loader, opts.epoch, model_dir, device, scheduler)
+                best_OA_validation, loss_training, loss_validation = train(model, optimizer, criterion, train_loader, val_loader, opts.epoch, model_dir, device, scheduler)
                 x_file.write("Best validation overall accuracy {}".format(best_OA_validation))
                 x_file.write('\n') 
             except KeyboardInterrupt:
                 print('"ctrl+c" is pused, the training is over')
+
+
+            
+            metric_output_dir = "./output_result/losscurve/" + opts.dataset_name + '/' + opts.model + '/' + str(opts.ratio)
+
+            if opts.model == 'proposed':
+                metric_output_filename = str(opts.epoch) + '_' + 'disjoint:' + str(opts.disjoint) + '_' + 'trans_type:' + str(opts.trans_type) + '_' + 'patch_size:' + str(opts.patch_size) + str(run) + '_losscurve.png'
+            else:
+                metric_output_filename = str(opts.epoch) + '_' + 'disjoint:' + str(opts.disjoint) + str(run) + '_losscurve.png'
+
+
+
+
+            if not os.path.isdir(metric_output_dir):
+                os.makedirs(metric_output_dir, exist_ok=True)
+
+            save_path = os.path.join(metric_output_dir, metric_output_filename)
+
+            fig, ax = plt.subplots()
+            x = list(range(0, opts.epoch, 1))
+            # print(x)
+            # print(loss_training)
+            ax.plot(x, loss_training, label='training loss')
+            ax.plot(x, loss_validation, label='validation loss')
+            ax.set_xlabel('Training epoch')
+            ax.set_ylabel('Loss value')
+            # ax.set_ylim([0.5, 3])
+            ax.set_title('Loss curve')
+            ax.legend()
+
+            # save_path = 'output_result/landscape/' + str('hyper_transformer') + '_' + 'landscape.png'
+            fig.savefig(save_path, bbox_inches = 'tight')
+
+            plt.show()
+
+
+
 
             # test the model
             probabilities = test(model, model_dir, image, opts.patch_size, num_classes, device)
@@ -172,5 +212,7 @@ if __name__ == "__main__":
         if opts.num_run > 1:
             metric_result_average = show_results(results, label_values=labels, agregated=True)
             x_file.write('{}'.format(metric_result_average))
+
+        
 
 

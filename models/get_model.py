@@ -6,6 +6,7 @@ from .dffn import dffn
 from .speformer import speformer
 from .ssftt import ssftt
 from .proposed import proposed
+from .group_transformer import group_transformer
 
 
 def get_model(model_name, dataset_name, patch_size, trans_type):
@@ -30,6 +31,9 @@ def get_model(model_name, dataset_name, patch_size, trans_type):
 
     elif model_name == 'proposed':
         model = proposed(dataset_name, patch_size, trans_type)
+
+    elif model_name == 'group_transformer':
+        model = group_transformer(dataset_name, patch_size)
 
     elif model_name == 'ssftt':
         model = ssftt(dataset_name, patch_size)

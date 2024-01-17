@@ -28,7 +28,7 @@ from scipy.stats import gaussian_kde
 
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper/leaderboard/logs/hu/proposed/hu_proposed_0_x0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper_patch_tgrs/leaderboard/logs/hu/proposed/hu_proposed_transtype8_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -69,7 +69,7 @@ model = KernelDensity(bandwidth=100, kernel='gaussian')
 sample = sample.reshape((len(sample), 1))
 model.fit(sample)
 # sample probabilities for a range of outcomes
-values1 = asarray([value for value in range(-1500, 1500)])
+values1 = asarray([value for value in range(int(min(x1)), int(max(x1)))])
 values1 = values1.reshape((len(values1), 1))
 probabilities1 = model.score_samples(values1)
 probabilities1 = exp(probabilities1)
@@ -93,16 +93,34 @@ probabilities1 = exp(probabilities1)
 
 
 
-fig, ax = plt.subplots(1, 1, figsize=(6.5, 4), dpi=200)
-ax.plot(values1[:], probabilities1, label='hyper_trans')
+fig, ax = plt.subplots(1, 1, figsize=(4.0, 3.5), dpi=200)
+ax.plot(values1[:], probabilities1, 'b', label='CSA+CNN-mixer')
+
+max_y_index = np.argmax(probabilities1)
+
+max_y_x_val = values1[max_y_index][0]
+max_y = probabilities1[max_y_index]
+# print(max_y_x_val)
+# 在该点上绘制平行于x=0的虚线
+ax.scatter(max_y_x_val, max_y, color='r', s=5, marker='o', zorder=3)  # zorder确保点在线之上
+# ax.axvline(max_y_x_val, color='r', linestyle='--', ymin=0, ymax=max_y/ax.get_ylim()[1])
+ax.plot([max_y_x_val, max_y_x_val], [0, max_y], 'r--')
+# ax.text(max_y_x_val, ax.get_ylim()[0], f"{max_y_x_val:.0f}", color='r', va='bottom', ha='center')
+offset = max_y
+ax.text(max_y_x_val+50, 0, f"{round(max_y_x_val)}", color='black', va='bottom', ha='left')
+
+
+ax.grid(True, linestyle='--')
 # ax.plot(values2[:], probabilities2, label='ResNet')
 
 
 ax.set_xlabel("Values")
-ax.set_ylabel("Probability")
+ax.set_ylabel("Distribution of the largest eigenvalue")
 # ax.legend(labels=['ViT', 'ResNet'])
 
-save_path = 'output_result/hessian/' + str('hessian') + '_' + 'density_hyper_trans_0.1_50.png'
+save_path = 'output_result/hessian/hu/' + str('hessian') + '_' + 'density_CSA+CNN-mixer_0.05_300.png'
+ax.set_xlim(xmin=-1000, xmax=1000)
+ax.set_ylim(ymin=0, ymax=0.004)
 fig.savefig(save_path, bbox_inches = 'tight')
 # plt.show()
 

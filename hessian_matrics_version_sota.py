@@ -105,7 +105,8 @@ if __name__ == "__main__":
 
     num_classes_la = len(labels)
     num_bands = image.shape[-1]
-    mixup_function = Mixup(num_classes=num_classes_la, mixup_alpha=1.0, cutmix_alpha=0.8, prob=1.0, label_smoothing=0.1)
+    # mixup_function = Mixup(num_classes=num_classes_la, mixup_alpha=1.0, cutmix_alpha=0.8, prob=1.0, label_smoothing=opts.smoothing)
+    mixup_function =None
 
 
 
@@ -164,7 +165,7 @@ if __name__ == "__main__":
                 #     summary(model, torch.zeros((3, 1, num_bands, opts.patch_size, opts.patch_size)))
             
 
-            model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.ratio), str(run), 'model_best.pth')))
+            model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.trans_type), str(opts.ratio), str(run), 'model_best.pth')))
             map_location = "cuda" if torch.cuda.is_available() else "cpu"
             model = model.to(map_location)
             
@@ -198,6 +199,33 @@ if __name__ == "__main__":
             dataset_train = train_loader
             weight_decay = 0.0001
 
+            # if model_name == 'm3ddcnn':
+            #     weight_decay=0.01
+
+            # elif model_name == 'cnn3d':
+            #     weight_decay=0.0005
+
+            # elif model_name == 'rssan':
+            #     weight_decay=0.0
+
+            # elif model_name == 'ablstm':
+            #     weight_decay=0.0005
+
+            # elif model_name == 'dffn':
+            #     weight_decay=0.0001
+
+            # elif model_name == 'speformer':
+            #     weight_decay=0.0
+
+            # elif model_name == 'ssftt':
+            #     weight_decay=0.0
+
+            # elif model_name == 'group_transformer':
+            #     weight_decay=0.0001
+
+            # elif model_name == 'proposed':
+                # weight_decay=0.0001
+
 
             for xs, ys in tqdm(dataset_train):
                 # print("ys shape = ", ys.shape)
@@ -206,7 +234,8 @@ if __name__ == "__main__":
                 print("xs shape = ", xs.shape)
                 print("ys shape = ", ys.type())
                 # ys = mixup_target(ys, num_classes, lam=1., smoothing=opts.smoothing, device=xs.device)
-                xs, ys = mixup_function(xs, ys)
+                if mixup_function is not None:
+                    xs, ys = mixup_function(xs, ys)
 
                 # xs = xs.squeeze(1)
 

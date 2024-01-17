@@ -1,6 +1,7 @@
 import scipy.io as scipyio
 import skimage
 from collections import Counter
+import skimage.io
 
 if __name__ == "__main__":
     print("convert HyRANK-Loukia (HR-L) from .tif to .mat...")

@@ -404,7 +404,7 @@ class ChannelMultiHeadBlock_Conv_Update(nn.Module):
         # x = x.permute(0, 2, 1, 3).contiguous().view(-1, self.per_channel, C_channel)
         x = x + self.drop_path(self.attn(self.norm1(x)))
         # x = x + self.gamma_2 * convX.transpose(1, 2)
-        x = x + convX.transpose(1, 2)
+        x = x + self.channel_rep_pad(convX.transpose(1, 2))
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
         # B_merge = int(x.shape[0])
@@ -466,7 +466,7 @@ class PixelConvBlock(nn.Module):
 
 # add convolution branch in Pixel-level attention module 
 class PixelConvBlockNoAttention(nn.Module):
-    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1, depConv_flag=True):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1, depConv_flag=False):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.init_values = 1e-4
@@ -1087,13 +1087,13 @@ def proposed(dataset, patch_size, trans_type):
     if dataset == 'sa':
         model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=204, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'hu':
-        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[3, 2, 4, 2], embed_dims=[96, 64, 32, 32], num_heads_spatial=[2, 2, 2, 2])
     elif dataset == 'indian':
         model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=200, num_classes=16, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'bot':
-        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=145, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=145, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2], embed_dims=[128, 64, 32, 16], num_heads_spatial=[2, 2, 2, 2])
     elif dataset == 'pu':
-        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=103, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
+        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=103, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2], embed_dims=[128, 64, 32, 16], num_heads_spatial=[8, 8, 8, 8])
     elif dataset == 'ksc':
         model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=176, num_classes=13, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2])
     elif dataset == 'whulk':
@@ -1107,3 +1107,4 @@ if __name__ == "__main__":
     print("input shape:", t.shape)
     net = proposed(dataset='sa', patch_size=7)
     print("output shape:", net(t).shape)
+

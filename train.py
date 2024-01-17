@@ -10,8 +10,12 @@ def train(network, optimizer, criterion, train_loader, val_loader, epoch, saving
 
     best_acc = -0.1
     losses = []
+    losses_training_output = []
+    losses_validation_output = []
+
 
     for e in tqdm(range(1, epoch+1), desc="training the network"):
+        losses_training = []
         network.train()
         for batch_idx, (images, targets) in enumerate(train_loader):
             images, targets = images.to(device), targets.to(device)
@@ -21,6 +25,7 @@ def train(network, optimizer, criterion, train_loader, val_loader, epoch, saving
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
+            losses_training.append(loss.item())
         if e % 10 == 0 or e == 1:
             mean_losses = np.mean(losses)
             train_info = "train at epoch {}/{}, loss={:.6f}"
@@ -30,7 +35,14 @@ def train(network, optimizer, criterion, train_loader, val_loader, epoch, saving
         else:
             losses = []
 
-        val_acc = validation(network, val_loader, device)
+        
+        # print(losses_training)
+        losses_training_output.append(np.mean(losses_training))
+        # print("losses_training_output:")
+        # print(losses_training_output)
+
+        val_acc, loss_vali = validation(network, criterion, val_loader, device)
+        losses_validation_output.append(np.mean(loss_vali))
 
         if scheduler is not None:
             scheduler.step()
@@ -39,22 +51,25 @@ def train(network, optimizer, criterion, train_loader, val_loader, epoch, saving
         best_acc = max(val_acc, best_acc)
         save_checkpoint(network, is_best, saving_path, epoch=e, acc=best_acc)
 
-    return best_acc
+    return best_acc, losses_training_output, losses_validation_output
 
 
-def validation(network, val_loader, device):
+def validation(network, criterion, val_loader, device):
+    loss_vali = []
     num_correct = 0.
     total_num = 0.
     network.eval()
     for batch_idx, (images, targets) in enumerate(val_loader):
         images, targets = images.to(device), targets.to(device)
         outputs = network(images)
+        loss = criterion(outputs, targets)
+        loss_vali.append(loss.item())
         _, outputs = torch.max(outputs, dim=1) 
         for output, target in zip(outputs, targets):
             num_correct = num_correct + (output.item() == target.item())
             total_num = total_num + 1
     overall_acc = num_correct / total_num
-    return overall_acc
+    return overall_acc, loss_vali
 
 
 def test(network, model_dir, image, patch_size, n_classes, device):

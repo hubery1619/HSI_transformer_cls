@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     num_classes_la = len(labels)
     num_bands = image.shape[-1]
-    transform = Mixup(num_classes=num_classes_la, mixup_alpha=1.0, cutmix_alpha=0.8, prob=1.0, label_smoothing=0.1)
+    transform = Mixup(num_classes=num_classes_la, mixup_alpha=1.0, cutmix_alpha=0.8, prob=1.0, label_smoothing=opts.smoothing)
 
 
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
             #     summary(model, torch.zeros((3, 1, num_bands, opts.patch_size, opts.patch_size)))
         
 
-        model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.ratio), str(run), 'model_best.pth')))
+        model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.trans_type), str(opts.ratio), str(run), 'model_best.pth')))
         map_location = "cuda" if torch.cuda.is_available() else "cpu"
         model = model.to(map_location)
         
@@ -177,9 +177,9 @@ if __name__ == "__main__":
 
         dataset_train = train_loader
         metrics_grid = lls.get_loss_landscape(
-            model, 1, dataset_train, transform=transform,
+            model, 1, dataset_train, transform=None,
             kws=["pos_embed", "relative_position"],
-            x_min=-1.0 * scale, x_max=1.0 * scale, n_x=n, y_min=-1.0 * scale, y_max=1.0 * scale, n_y=n, gpu=gpu,
+            x_min=-1.0 * scale, x_max=1.0 * scale, n_x=n, y_min=-1.0 * scale, y_max=1.0 * scale, n_y=n, gpu=gpu, smoothing_value=opts.smoothing
         )
         leaderboard_path = os.path.join("leaderboard", "logs", dataset_name, model_name)
         Path(leaderboard_path).mkdir(parents=True, exist_ok=True)
@@ -194,30 +194,30 @@ if __name__ == "__main__":
 
 
 
+        weight_decay=0.0001
+        # if model_name == 'm3ddcnn':
+        #     weight_decay=0.01
 
-        if model_name == 'm3ddcnn':
-            weight_decay=0.01
+        # elif model_name == 'cnn3d':
+        #     weight_decay=0.0005
 
-        elif model_name == 'cnn3d':
-            weight_decay=0.0005
+        # elif model_name == 'rssan':
+        #     weight_decay=0.0
 
-        elif model_name == 'rssan':
-            weight_decay=0.0
+        # elif model_name == 'ablstm':
+        #     weight_decay=0.0005
 
-        elif model_name == 'ablstm':
-            weight_decay=0.0005
+        # elif model_name == 'dffn':
+        #     weight_decay=0.0001
 
-        elif model_name == 'dffn':
-            weight_decay=0.0001
+        # elif model_name == 'speformer':
+        #     weight_decay=0.0
 
-        elif model_name == 'speformer':
-            weight_decay=0.0
+        # elif model_name == 'ssftt':
+        #     weight_decay=0.0
 
-        elif model_name == 'ssftt':
-            weight_decay=0.0
-
-        elif model_name == 'proposed':
-            weight_decay=0.0001
+        # elif model_name == 'proposed':
+        #     weight_decay=0.0001
 
 
 
@@ -250,8 +250,9 @@ if __name__ == "__main__":
     colors = cm.plasma(norm(zs))
     rcount, ccount, _ = colors.shape
 
-    fig = plt.figure(figsize=(4.2, 4), dpi=120)
+    fig = plt.figure(figsize=(4.0, 3.5), dpi=200)
     ax = fig.add_subplot(projection='3d')
+    ax.grid()
     ax.view_init(elev=15, azim=15)  # angle
 
     # make the panes transparent
@@ -259,9 +260,9 @@ if __name__ == "__main__":
     ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     # make the grid lines transparent
-    ax.xaxis._axinfo["grid"]['color'] =  (1,1,1,0)
-    ax.yaxis._axinfo["grid"]['color'] =  (1,1,1,0)
-    ax.zaxis._axinfo["grid"]['color'] =  (1,1,1,0)
+    # ax.xaxis._axinfo["grid"]['color'] =  (1,1,1,0)
+    # ax.yaxis._axinfo["grid"]['color'] =  (1,1,1,0)
+    # ax.zaxis._axinfo["grid"]['color'] =  (1,1,1,0)
 
     surf = ax.plot_surface(
         xs, ys, zs, 
@@ -271,12 +272,18 @@ if __name__ == "__main__":
     surf.set_facecolor((0,0,0,0))
 
     # remove white spaces
-    adjust_lim = 0.8
+    ax.set_xlabel('Weight in x')
+    ax.set_ylabel('Weight in y')
+    ax.zaxis.set_rotate_label(False)
+    ax.set_zlabel(r'Loss value', rotation=90)
+    adjust_lim = 1 #0.8
     ax.set_xlim(-1 * adjust_lim, 1 * adjust_lim)
     ax.set_ylim(-1 * adjust_lim, 1 * adjust_lim)
     ax.set_zlim(0, 20)
-    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-    ax.axis('off')
+    plt.xticks(np.arange(-1, 1.1, 0.5))
+    plt.yticks(np.arange(-1, 1.1, 0.5))
+    # fig.subplots_adjust(left=0, right=0, bottom=0, top=0)
+    ax.axis('on')
 
 
 

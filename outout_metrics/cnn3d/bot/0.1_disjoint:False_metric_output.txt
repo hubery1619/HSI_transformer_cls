@@ -1,5 +1,37 @@
-run 1 / 5
-run 2 / 5
-run 3 / 5
-run 4 / 5
-run 5 / 5
+run 1 / 1
+Best validation overall accuracy 0.7890625
+Confusion matrix :
+[[243   0   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   7  70   6   0   8   0   0   0   0   0]
+ [  0   0 204   0   0   0   3   0  19   0   0   0   0   0]
+ [  0   0  13  58   0   3   0   0 120   0   0   0   0   0]
+ [  1   0   0   1 186  39   0   0   1   0   0  14   0   0]
+ [  0   0   0   0  27  65   0   0 143   0   0   0   7   0]
+ [  0   0   1   0   0   0 232   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0 132   0   8  39   4   0   0]
+ [  0   0   8   0   0   0   0   0 270   1   0   0   4   0]
+ [  0   0  21   0   0   0   0   0   0 196   6   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   3 272   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0 163   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   1 240   0]
+ [  0   0   0   0   0   0   0   3   0   0   0   4   0  78]]---
+Accuracy : 79.99%
+---
+class acc :
+	Water: 100.00
+	Hippo grass: 0.00
+	Floodplain grasses 1: 90.27
+	Floodplain grasses 2: 29.90
+	Reeds: 76.86
+	Riparian: 26.86
+	Firescar: 99.57
+	Island interior: 72.13
+	Acacia woodlands: 95.41
+	Acacia shrublands: 87.89
+	Acacia grasslands: 98.91
+	Short mopane: 100.00
+	Mixed mopane: 99.59
+	Exposed soils: 91.76
+---
+AA: 76.37%
+Kappa: 78.23
