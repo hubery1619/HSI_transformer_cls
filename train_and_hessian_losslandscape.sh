@@ -15,13 +15,13 @@
 # python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 13
 # python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 15
 
-# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 3
-# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 5
-# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 7
-# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 9
-# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 11
-# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 13
-# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 15
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 3
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 5
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 7
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 9
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 11
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 13
+python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 1 --patch_size 15
 
 # python hessian_matrics_version_sota.py --model proposed --dataset_name bot --epoch 300 --bs 64 --ratio 0.2 --trans_type 1 --weights ./checkpoints/proposed/bot
 # python loss_landscape_analysis.py --model proposed --dataset_name bot --epoch 300 --bs 64 --ratio 0.2 --trans_type 1 --weights ./checkpoints/proposed/bot
@@ -98,6 +98,12 @@
 # python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 8 --patch_size 11
 # python hessian_matrics_version_sota.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 8 --weights ./checkpoints/proposed/hu --patch_size 11
 # python loss_landscape_analysis.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 8 --weights ./checkpoints/proposed/hu --patch_size 11
+
+
+# # transtype = 13
+# python main.py --model proposed --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 13 --patch_size 11
+# python hessian_matrics_version_sota.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 13 --weights ./checkpoints/proposed/hu --patch_size 11
+# python loss_landscape_analysis.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 13 --weights ./checkpoints/proposed/hu --patch_size 11
 
 
 # # python main.py --model cnn3d --dataset_name hu --epoch 300 --bs 64 --device 0 --ratio 0.1 --trans_type 8 --patch_size 11

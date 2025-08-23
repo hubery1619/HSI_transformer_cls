@@ -28,7 +28,7 @@ from scipy.stats import gaussian_kde
 
 
 
-treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper_patch_tgrs/leaderboard/logs/hu/proposed/hu_proposed_transtype8_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
+treatment_spell_path = r'/home/tirgan/a/liu3044/Project/Group_Transformer_hyper_patch_tgrs/leaderboard/logs/hu/proposed/hu_proposed_transtype13_trainingepoch300_trainingratio0.1_hessian_matrics.csv'
 links = []
 
 with open(treatment_spell_path, 'r') as f:
@@ -94,7 +94,7 @@ probabilities1 = exp(probabilities1)
 
 
 fig, ax = plt.subplots(1, 1, figsize=(4.0, 3.5), dpi=200)
-ax.plot(values1[:], probabilities1, 'b', label='CSA+CNN-mixer')
+ax.plot(values1[:], probabilities1, 'b', label='Pooling-mixer')
 
 max_y_index = np.argmax(probabilities1)
 
@@ -118,7 +118,7 @@ ax.set_xlabel("Values")
 ax.set_ylabel("Distribution of the largest eigenvalue")
 # ax.legend(labels=['ViT', 'ResNet'])
 
-save_path = 'output_result/hessian/hu/' + str('hessian') + '_' + 'density_CSA+CNN-mixer_0.05_300.png'
+save_path = 'output_result/hessian/hu/' + str('hessian') + '_' + 'density_Pooling-mixer_0.05_300.png'
 ax.set_xlim(xmin=-1000, xmax=1000)
 ax.set_ylim(ymin=0, ymax=0.004)
 fig.savefig(save_path, bbox_inches = 'tight')

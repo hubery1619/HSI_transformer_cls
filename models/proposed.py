@@ -513,7 +513,59 @@ class PixelConvBlockNoAttention(nn.Module):
 
 
 
+# add convolution branch in Pixel-level attention module 
+class Poolformer(nn.Module):
+    def __init__(self, dim, num_heads, patch_size=7, mlp_ratio=4, drop=0., attn_drop=0., drop_path=0., qkv_bias=True, group=1, depConv_flag=False):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(dim)
+        self.init_values = 1e-4
+        self.attn = Attention(dim, num_heads=num_heads, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = nn.LayerNorm(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, drop=drop)
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.patch_size = patch_size
+        self.depConv_flag = depConv_flag
+        self.pool_size = 3
+        self.pool = nn.AvgPool2d(
+            self.pool_size, stride=1, padding=self.pool_size//2, count_include_pad=False)
 
+        
+        # if self.depConv_flag:
+        #     # self.conv_branch = SepConv(dim)
+        #     self.conv_branch = MBConv(dim, dim) 
+        # else:   
+        #     self.conv_branch = nn.Sequential(
+        #                         nn.Conv2d(dim, mlp_hidden_dim, 3, 1, 1, 1, group),
+        #                         nn.BatchNorm2d(mlp_hidden_dim),
+        #                         nn.SiLU(inplace=True),
+        #                         nn.Conv2d(mlp_hidden_dim, dim, 3, 1, 1, 1, group)
+        #                         )
+        # self.gamma_1 = nn.Parameter(self.init_values * torch.ones((dim)),requires_grad=True)
+
+    def forward(self, x):
+        # convolution branch
+        x1 = x
+        B = x1.shape[0]
+
+        # if self.depConv_flag:
+        #     convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1)).view(B, self.patch_size*self.patch_size, -1))
+        # else:
+        #     # x1 = x1.reshape(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()
+        #     convX = self.drop_path(self.conv_branch(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
+        
+        poolX = self.drop_path(self.pool(x1.view(B, self.patch_size, self.patch_size, -1).permute(0, 3, 1, 2).contiguous()).permute(0, 2, 3, 1).contiguous().view(B, self.patch_size*self.patch_size, -1))
+
+        # self_attention branch
+        # x = x + self.drop_path(self.attn(self.norm1(x)))
+
+        # merge convolution branch and self_attention branch
+        # x = x + self.gamma_1 * convX
+        x = x + poolX
+
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        return x
 
 
 # add convolution branch in Channel-level attention module 
@@ -848,6 +900,17 @@ class BasicLayer(nn.Module):
                 drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
                 qkv_bias=qkv_bias)
                 for j in range(depth)])
+
+        elif attention_type == 13:
+            self.blocks = nn.ModuleList([Poolformer(
+                dim=dim, 
+                num_heads=num_heads_channel,
+                mlp_ratio=mlp_ratio,
+                patch_size=patch_size,
+                drop=0., 
+                attn_drop=0.,
+                drop_path=drop_path[j] if isinstance(drop_path, list) else drop_path,
+                qkv_bias=qkv_bias) for j in range(depth)])
 
         else:
             print("The selection of the transformer block is wrong!!!")
