@@ -1,0 +1,27 @@
+run 1 / 1
+Best validation overall accuracy 0.9915865384615384
+Confusion matrix :
+[[ 6313     0    22     0     0     0     0    31     0]
+ [    0 17885     0    18     0     0     0     0     0]
+ [    6     0  1941     0     0     0     0    68     0]
+ [   20    12     0  2887     0     7     0     0    15]
+ [    0     0     0     0  1291     0     0     0     0]
+ [    0     0     0     6     0  4822     0     0     0]
+ [   66     0     0     0     0     0  1209     2     0]
+ [    8     0   105     9     0     0     0  3413     0]
+ [    0     0     0     0     1     0     0     0   908]]---
+Accuracy : 99.04%
+---
+class acc :
+	Asphalt: 99.17
+	Meadows: 99.90
+	Gravel: 96.33
+	Trees: 98.16
+	Painted metal sheets: 100.00
+	Bare Soil: 99.88
+	Bitumen: 94.68
+	Self-Blocking Bricks: 96.55
+	Shadows: 99.89
+---
+AA: 98.28%
+Kappa: 98.72

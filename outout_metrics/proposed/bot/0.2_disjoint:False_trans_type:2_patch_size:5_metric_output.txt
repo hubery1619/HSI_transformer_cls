@@ -1,0 +1,235 @@
+run 1 / 5
+Best validation overall accuracy 1.0
+Confusion matrix :
+[[216   0   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0  81   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0 201   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0 172   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0 208   7   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   8 207   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0 207   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0 162   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0 251   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0 199   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   1 243   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0 145   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0 215   0]
+ [  0   0   0   0   3   0   0   0   0   0   0   0   0  73]]---
+Accuracy : 99.27%
+---
+class acc :
+	Water: 100.00
+	Hippo grass: 100.00
+	Floodplain grasses 1: 100.00
+	Floodplain grasses 2: 100.00
+	Reeds: 96.74
+	Riparian: 96.28
+	Firescar: 100.00
+	Island interior: 100.00
+	Acacia woodlands: 100.00
+	Acacia shrublands: 100.00
+	Acacia grasslands: 99.59
+	Short mopane: 100.00
+	Mixed mopane: 100.00
+	Exposed soils: 96.05
+---
+AA: 99.19%
+Kappa: 99.21
+run 2 / 5
+Best validation overall accuracy 1.0
+Confusion matrix :
+[[216   0   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0  81   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0 201   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0 172   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0 213   2   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0 215   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0 207   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0 162   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0 251   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0 194   5   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0 244   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0 145   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0 215   0]
+ [  0   0   0   0   1   0   0   0   0   0   0   0   0  75]]---
+Accuracy : 99.69%
+---
+class acc :
+	Water: 100.00
+	Hippo grass: 100.00
+	Floodplain grasses 1: 100.00
+	Floodplain grasses 2: 100.00
+	Reeds: 99.07
+	Riparian: 100.00
+	Firescar: 100.00
+	Island interior: 100.00
+	Acacia woodlands: 100.00
+	Acacia shrublands: 97.49
+	Acacia grasslands: 100.00
+	Short mopane: 100.00
+	Mixed mopane: 100.00
+	Exposed soils: 98.68
+---
+AA: 99.66%
+Kappa: 99.67
+run 3 / 5
+Best validation overall accuracy 1.0
+Confusion matrix :
+[[216   0   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0  81   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0 201   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0 171   0   0   1   0   0   0   0   0   0   0]
+ [  0   0   0   0 215   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   4 211   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0 207   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0 162   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0 251   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0 199   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   1 243   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0 141   4   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0 215   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0  76]]---
+Accuracy : 99.62%
+---
+class acc :
+	Water: 100.00
+	Hippo grass: 100.00
+	Floodplain grasses 1: 100.00
+	Floodplain grasses 2: 99.42
+	Reeds: 100.00
+	Riparian: 98.14
+	Firescar: 100.00
+	Island interior: 100.00
+	Acacia woodlands: 100.00
+	Acacia shrublands: 100.00
+	Acacia grasslands: 99.59
+	Short mopane: 97.24
+	Mixed mopane: 100.00
+	Exposed soils: 100.00
+---
+AA: 99.60%
+Kappa: 99.58
+run 4 / 5
+Best validation overall accuracy 1.0
+Confusion matrix :
+[[216   0   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0  81   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0 201   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0 172   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0   0 211   4   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   0 214   0   0   1   0   0   0   0   0]
+ [  0   0   0   0   0   0 207   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0 162   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0 251   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0 199   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0 244   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0 145   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0 215   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0   0  76]]---
+Accuracy : 99.81%
+---
+class acc :
+	Water: 100.00
+	Hippo grass: 100.00
+	Floodplain grasses 1: 100.00
+	Floodplain grasses 2: 100.00
+	Reeds: 98.14
+	Riparian: 99.53
+	Firescar: 100.00
+	Island interior: 100.00
+	Acacia woodlands: 100.00
+	Acacia shrublands: 100.00
+	Acacia grasslands: 100.00
+	Short mopane: 100.00
+	Mixed mopane: 100.00
+	Exposed soils: 100.00
+---
+AA: 99.83%
+Kappa: 99.79
+run 5 / 5
+Best validation overall accuracy 0.99375
+Confusion matrix :
+[[216   0   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0  81   0   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0 201   0   0   0   0   0   0   0   0   0   0   0]
+ [  0   0   0 171   0   0   1   0   0   0   0   0   0   0]
+ [  0   0   0   0 208   7   0   0   0   0   0   0   0   0]
+ [  0   0   0   0   7 207   0   0   1   0   0   0   0   0]
+ [  0   0   0   0   0   0 207   0   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0 162   0   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0 251   0   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0 199   0   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0 244   0   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0 145   0   0]
+ [  0   0   0   0   0   0   0   0   0   0   0   0 215   0]
+ [  0   0   0   0   3   0   0   0   0   0   0   0   0  73]]---
+Accuracy : 99.27%
+---
+class acc :
+	Water: 100.00
+	Hippo grass: 100.00
+	Floodplain grasses 1: 100.00
+	Floodplain grasses 2: 99.42
+	Reeds: 96.74
+	Riparian: 96.28
+	Firescar: 100.00
+	Island interior: 100.00
+	Acacia woodlands: 100.00
+	Acacia shrublands: 100.00
+	Acacia grasslands: 100.00
+	Short mopane: 100.00
+	Mixed mopane: 100.00
+	Exposed soils: 96.05
+---
+AA: 99.18%
+Kappa: 99.21
+Agregated results :
+Confusion matrix :
+[[216.    0.    0.    0.    0.    0.    0.    0.    0.    0.    0.    0.
+    0.    0. ]
+ [  0.   81.    0.    0.    0.    0.    0.    0.    0.    0.    0.    0.
+    0.    0. ]
+ [  0.    0.  201.    0.    0.    0.    0.    0.    0.    0.    0.    0.
+    0.    0. ]
+ [  0.    0.    0.  171.6   0.    0.    0.4   0.    0.    0.    0.    0.
+    0.    0. ]
+ [  0.    0.    0.    0.  211.    4.    0.    0.    0.    0.    0.    0.
+    0.    0. ]
+ [  0.    0.    0.    0.    3.8 210.8   0.    0.    0.4   0.    0.    0.
+    0.    0. ]
+ [  0.    0.    0.    0.    0.    0.  207.    0.    0.    0.    0.    0.
+    0.    0. ]
+ [  0.    0.    0.    0.    0.    0.    0.  162.    0.    0.    0.    0.
+    0.    0. ]
+ [  0.    0.    0.    0.    0.    0.    0.    0.  251.    0.    0.    0.
+    0.    0. ]
+ [  0.    0.    0.    0.    0.    0.    0.    0.    0.  198.    1.    0.
+    0.    0. ]
+ [  0.    0.    0.    0.    0.    0.    0.    0.    0.    0.4 243.6   0.
+    0.    0. ]
+ [  0.    0.    0.    0.    0.    0.    0.    0.    0.    0.    0.  144.2
+    0.8   0. ]
+ [  0.    0.    0.    0.    0.    0.    0.    0.    0.    0.    0.    0.
+  215.    0. ]
+ [  0.    0.    0.    0.    1.4   0.    0.    0.    0.    0.    0.    0.
+    0.   74.6]]---
+Accuracy: 99.53 +- 0.22
+---
+class acc :
+	Water: 100.00 +- 0.00
+	Hippo grass: 100.00 +- 0.00
+	Floodplain grasses 1: 100.00 +- 0.00
+	Floodplain grasses 2: 99.77 +- 0.28
+	Reeds: 98.14 +- 1.28
+	Riparian: 98.05 +- 1.57
+	Firescar: 100.00 +- 0.00
+	Island interior: 100.00 +- 0.00
+	Acacia woodlands: 100.00 +- 0.00
+	Acacia shrublands: 99.50 +- 1.01
+	Acacia grasslands: 99.84 +- 0.20
+	Short mopane: 99.45 +- 1.10
+	Mixed mopane: 100.00 +- 0.00
+	Exposed soils: 98.16 +- 1.78
+---
+AA: 99.49 +- 0.26
+Kappa: 99.49 +- 0.24

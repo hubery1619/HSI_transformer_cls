@@ -1,0 +1,57 @@
+run 1 / 1
+Best validation overall accuracy 0.9583333333333334
+Confusion matrix :
+[[1808    0    0    0    0    0    0    0    0    0    0    0    0    0
+     0    0]
+ [   1 3351    0    0    0    0    0    0    0    0    0    0    1    0
+     0    1]
+ [   0    0 1747    0    8    0    0    0   21    2    0    0    1    0
+     0    0]
+ [   0    0    0 1251    4    0    0    0    0    0    0    0    0    0
+     0    0]
+ [   0    0    0   38 2367    0    0    0    4    1    0    0    0    0
+     0    0]
+ [   0    0    1    0    1 3486    0    0    6   30   28    0    0   10
+     0    1]
+ [   0    2    1    0    0    0 3202    3    0    1    0    1    0    0
+     0   11]
+ [   0    0    8    0    0    7    9 9402   27  121   30   13   14    9
+   504    0]
+ [   0    0    6    0    0    0    0    0 5516    4   56    1    0    0
+     0    0]
+ [   0    0   24    0    0    2    0   10   29 2761   67   33    9   14
+     0    1]
+ [   0    0    5    0    0    0    0    0    0   72  874    7    3    0
+     0    0]
+ [   0    0    0    0    0    0    0    0    0   23    0 1711    0    0
+     0    0]
+ [   0    0    0    0    0    0    0    0    0    0    0    6  800   19
+     0    0]
+ [   0    0    0    0    0    0    0    1    0   24    0    1   45  886
+     0    6]
+ [   0    0    3    0    0    0    0  676   10   20    0   11    0    0
+  5821    0]
+ [   0    0    2    5    4    0    1    1    0    1    0    2    1    0
+     0 1609]]---
+Accuracy : 95.64%
+---
+class acc :
+	Brocoli_green_weeds_1: 100.00
+	Brocoli_green_weeds_2: 99.91
+	Fallow: 98.20
+	Fallow_rough_plow: 99.68
+	Fallow_smooth: 98.22
+	Stubble: 97.84
+	Celery: 99.41
+	Grapes_untrained: 92.69
+	Soil_vinyard_develop: 98.80
+	Corn_senesced_green_weeds: 93.59
+	Lettuce_romaine_4wk: 90.95
+	Lettuce_romaine_5wk: 98.67
+	Lettuce_romaine_6wk: 96.97
+	Lettuce_romaine_7wk: 92.00
+	Vinyard_untrained: 88.99
+	Vinyard_vertical_trellis: 98.95
+---
+AA: 96.55%
+Kappa: 95.15
