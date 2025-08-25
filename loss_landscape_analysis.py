@@ -33,7 +33,6 @@ from pyhessian import hessian
 from tqdm import tqdm
 from pathlib import Path
 import ops.tests as tests
-import ops.datasets as datasets
 import ops.loss_landscapes as lls
 import torch.nn as nn
 import torch.optim as optim
@@ -116,7 +115,7 @@ if __name__ == "__main__":
         print("Calulation time：%s" %time_consume)
         weight_decay=0.0001
         # load losslandscape raw data of ResNet-50 or ViT-Ti
-        names = ["x", "y", "l1", "l2", "NLL", "Cutoff1", "Cutoff2", "Acc", "Acc-90", "Unc", "Unc-90", "IoU", "IoU-90", "Freq", "Freq-90", "Top-5", "Brier", "ECE", "ECSE"]
+        names = ["x", "y", "l1", "l2", "NLL"]
         path = metrics_dir
         data = pd.read_csv(path, names=names)
         data["loss"] = data["NLL"] + weight_decay * data["l2"]  # NLL + l2
