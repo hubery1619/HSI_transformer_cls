@@ -1,84 +1,53 @@
 import torch
 import math
-from torch.autograd import Variable
 import numpy as np
 import landscape_op.norm as norm
-
 from pyhessian.utils import group_product, group_add, normalization, get_params_grad, hessian_vector_product, orthnormal
 
 
 class hessian():
-    """
-    The class used to compute :
-        i) the top 1 (n) eigenvalue(s) of the neural network
-        ii) the trace of the entire neural network
-        iii) the estimated eigenvalue density
-    """
-
     def __init__(self, model, criterion, data=None, weight_decay=0.0, dataloader=None, cuda=True):
-        """
-        model: the model that needs Hessain information
-        criterion: the loss function
-        data: a single batch of data, including inputs and its corresponding labels
-        dataloader: the data loader including bunch of batches of data
-        """
-
-        # make sure we either pass a single batch or a dataloader
         assert (data != None and dataloader == None) or (data == None and
                                                          dataloader != None)
-        
         gpu = torch.cuda.is_available()
         self.l1, self.l2 = norm.l1(model, gpu).item(), norm.l2(model, gpu).item()
-        self.model = model.eval()  # make model is in evaluation model
+        self.model = model.eval()  
         self.criterion = criterion
-        # self.transform = transform
         self.weight_decay = weight_decay
-
-
         if data != None:
             self.data = data
             self.full_dataset = False
         else:
             self.data = dataloader
             self.full_dataset = True
-
         if cuda:
             self.device = 'cuda'
         else:
             self.device = 'cpu'
 
-        # pre-processing for single batch case to simplify the computation.
         if not self.full_dataset:
             self.inputs, self.targets = self.data
             if self.device == 'cuda':
                 self.inputs, self.targets = self.inputs.cuda(
                 ), self.targets.cuda()
-
-            # if we only compute the Hessian information for a single batch data, we can re-use the gradients.
             outputs = self.model(self.inputs)
-            print("outputs shape of Hessian loss = ", outputs.type())
-            print("print shape of Hessian loss = ", self.targets.type())
             loss = self.criterion(outputs, self.targets)
             loss.backward(create_graph=True)
 
-        # this step is used to extract the parameters from the model
         params, gradsH = get_params_grad(self.model)
         self.params = params
-        self.gradsH = gradsH  # gradient used for Hessian computation
+        self.gradsH = gradsH  
 
     def dataloader_hv_product(self, v):
-
         device = self.device
-        num_data = 0  # count the number of datum points in the dataloader
-
+        num_data = 0  
         THv = [torch.zeros(p.size()).to(device) for p in self.params
-              ]  # accumulate result
+              ]  
         for inputs, targets in self.data:
             self.model.zero_grad()
             tmp_num_data = inputs.size(0)
             outputs = self.model(inputs.to(device))
             loss = self.criterion(outputs, targets.to(device))
-            # add l2 regularization
             loss = loss + self.weight_decay * self.l2
             
             loss.backward(create_graph=True)
@@ -100,27 +69,16 @@ class hessian():
         return eigenvalue, THv
 
     def eigenvalues(self, maxIter=100, tol=1e-3, top_n=1):
-        """
-        compute the top_n eigenvalues using power iteration method
-        maxIter: maximum iterations used to compute each single eigenvalue
-        tol: the relative tolerance between two consecutive eigenvalue computations from power iteration
-        top_n: top top_n eigenvalues will be computed
-        """
-
         assert top_n >= 1
-
         device = self.device
-
         eigenvalues = []
         eigenvectors = []
-
         computed_dim = 0
-
         while computed_dim < top_n:
             eigenvalue = None
             v = [torch.randn(p.size()).to(device) for p in self.params
-                ]  # generate random vector
-            v = normalization(v)  # normalize the vector
+                ]  
+            v = normalization(v)  
 
             for i in range(maxIter):
                 v = orthnormal(v, eigenvectors)
@@ -149,12 +107,6 @@ class hessian():
         return eigenvalues, eigenvectors
 
     def trace(self, maxIter=100, tol=1e-3):
-        """
-        compute the trace of hessian using Hutchinson's method
-        maxIter: maximum iterations used to compute trace
-        tol: the relative tolerance
-        """
-
         device = self.device
         trace_vhv = []
         trace = 0.
@@ -165,10 +117,8 @@ class hessian():
                 torch.randint_like(p, high=2, device=device)
                 for p in self.params
             ]
-            # generate Rademacher random variables
             for v_i in v:
                 v_i[v_i == 0] = -1
-
             if self.full_dataset:
                 _, Hv = self.dataloader_hv_product(v)
             else:
@@ -178,16 +128,9 @@ class hessian():
                 return trace_vhv
             else:
                 trace = np.mean(trace_vhv)
-
         return trace_vhv
 
     def density(self, iter=100, n_v=1):
-        """
-        compute estimated eigenvalue density using stochastic lanczos algorithm (SLQ)
-        iter: number of iterations used to compute trace
-        n_v: number of SLQ runs
-        """
-
         device = self.device
         eigen_list_full = []
         weight_list_full = []
@@ -197,17 +140,13 @@ class hessian():
                 torch.randint_like(p, high=2, device=device)
                 for p in self.params
             ]
-            # generate Rademacher random variables
             for v_i in v:
                 v_i[v_i == 0] = -1
             v = normalization(v)
-
-            # standard lanczos algorithm initlization
             v_list = [v]
             w_list = []
             alpha_list = []
             beta_list = []
-            ############### Lanczos
             for i in range(iter):
                 self.model.zero_grad()
                 w_prime = [torch.zeros(p.size()).to(device) for p in self.params]
@@ -225,11 +164,9 @@ class hessian():
                     beta = torch.sqrt(group_product(w, w))
                     beta_list.append(beta.cpu().item())
                     if beta_list[-1] != 0.:
-                        # We should re-orth it
                         v = orthnormal(w, v_list)
                         v_list.append(v)
                     else:
-                        # generate a new vector
                         w = [torch.randn(p.size()).to(device) for p in self.params]
                         v = orthnormal(w, v_list)
                         v_list.append(v)

@@ -92,27 +92,18 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
         rgb_bands = [0, 1, 2]  # to be edited
         undefined_label_index = 0
 
-    # after getting image and ground truth (gt), let us do data preprocessing!
-    # step1 filter nan values out
     nan_mask = np.isnan(image.sum(axis=-1))
     if np.count_nonzero(nan_mask) > 0:
         print("warning: nan values found in dataset {}, using 0 replace them".format(dataset_name))
         image[nan_mask] = 0
         gt[nan_mask] = 0
-
-    # step2 normalise the HSI data (method from SSAN, TGRS 2020)
     image = np.asarray(image, dtype=np.float32)
     image = (image - np.min(image)) / (np.max(image) - np.min(image))
     mean_by_c = np.mean(image, axis=(0, 1))
     for c in range(image.shape[-1]):
         image[:, :, c] = image[:, :, c] - mean_by_c[c]
-
-    # step3 set undefined index 0 to -1, so class index starts from 0
     gt = gt.astype('int') - 1
-
-    # step4 remove undefined label
     labels = labels[1:]
-
     return image, gt, labels
 
 
@@ -137,13 +128,10 @@ def sample_gt(gt, percentage, seed, disjoint=True, window_size=3):
         stratify=y
     )
 
-###modify the code
     if disjoint:
         img_height, img_width = gt.shape
         neighbor_point = []
         Train_len = len(train_indices)
-        Test_len = len(test_indices)
-
         for element in range(Train_len):
             train_indices_indx0 = train_indices[element][0]
             train_indices_indy0 = train_indices[element][1]
@@ -151,7 +139,6 @@ def sample_gt(gt, percentage, seed, disjoint=True, window_size=3):
             y_range = list(range(max(0, train_indices_indy0-window_size), min(img_height-1, train_indices_indy0+window_size)+1))
             for item in itertools.product(x_range, y_range):
                 neighbor_point.append(item)
-        neighbor_point_set = neighbor_point[0]
         res = set(neighbor_point) & set(test_indices)
         result = list(set(test_indices) - res)
         test_indices = result
@@ -217,19 +204,11 @@ class HSIDataset(torch.utils.data.Dataset):
         label = self.label[x, y]
 
         if self.data_aug:
-            # Perform data augmentation (only on 2D patches)
             data = self.hsi_augment(data)
-
-        # Copy the data into numpy arrays (PyTorch doesn't like numpy views)
         data = np.asarray(np.copy(data).transpose((2, 0, 1)), dtype='float32')
         label = np.asarray(np.copy(label), dtype='int64')
-
-        # Load the data into PyTorch tensors
         data = torch.from_numpy(data)
         label = torch.from_numpy(label)
-
-        # Add a fourth dimension for 3D CNN
-
         data = data.unsqueeze(0)
 
         return data, label

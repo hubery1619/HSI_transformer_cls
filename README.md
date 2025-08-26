@@ -1,16 +1,20 @@
-# Group-Aware-Hierarchical-Transformer
+# Hyperspectral imagery classification investigation
 
-This repository is the official implementation for our IEEE TGRS 2022 paper:
+This repository provides the implementation of the following work:
 
-[Hyperspectral image classification using group-aware hierarchical transformer](https://www.doi.org/10.1109/TGRS.2022.3207933)
+[Investigation of hierarchical spectral vision transformer architecture for classification of hyperspectral imagery (IEEE TGRS 2024)]
 
-Last update: September 20, 2022
+## 1. Requirements
 
-## Requirements
+```bash
+conda env create -f environment.yml
+```
+Activate the conda environment as follows:
+```bash
+conda activate HSI_cls
+```
 
-python == 3.7.9, cuda == 11.1, and packages in `requirements.txt`
-
-## Datasets
+## 2. Datasets sources
 
 Download following datasets:
 
@@ -20,7 +24,7 @@ Download following datasets:
 - [Pavia University (PU)](https://www.ehu.eus/ccwintco/index.php/Hyperspectral_Remote_Sensing_Scenes)
 
 
-The three datasets are stored as follows:
+The datasets folder is organized as follows:
 
 ```
 datasets/
@@ -35,34 +39,71 @@ datasets/
     PaviaU.mat
 ```
 
-## Codes for Training and Validation
+## 3. Codes for training and evaluation
 
-The model is trained based on the following command: 
+To train the model, run the following command:
 
 ```bash
-python main.py --model proposed --dataset_name hrl --epoch 300 --bs 64 --device 0 --ratio 0.06
+python main.py \
+  --model <model_name> \
+  --dataset_name <dataset> \
+  --epoch <num_epochs> \
+  --bs <batch_size> \
+  --device <gpu_id> \
+  --ratio <train_ratio>
+  ```
+
+To evaluate the model, run the following command:
+
+```bash
+python eval.py \
+  --model <MODEL_NAME> \
+  --dataset_name <DATASET_NAME> \
+  --device <GPU_ID> \
+  --trans_type <TRANSFORMER_TYPE> \
+  --patch_size <PATCH_SIZE> \
+  --weights <PATH_TO_WEIGHTS>
+  ```
+
+
+## 4. Loss landscape analysis
+
+```bash
+python loss_landscape_analysis.py \
+  --model <MODEL_NAME> \
+  --dataset_name <DATASET_NAME> \
+  --epoch <NUM_EPOCHS> \
+  --bs <BATCH_SIZE> \
+  --ratio <TRAIN_RATIO> \
+  --trans_type <TRANSFORMER_TYPE> \
+  --weights <WEIGHTS_PATH>
 ```
 
-The model is evaluated based on the following command: 
+## 5. Hessian Eigenvalue analysis
 
+Step 1: generate hessian csv file.
 ```bash
-python eval.py --model proposed --dataset_name hu --device 0 --trans_type 8 --patch_size 11 --weights ./checkpoints/proposed/hu/300/8/0.1/0
+python hessian_analysis.py \
+  --model <MODEL_NAME> \
+  --dataset_name <DATASET_NAME> \
+  --epoch <NUM_EPOCHS> \
+  --bs <BATCH_SIZE> \
+  --ratio <TRAIN_RATIO> \
+  --trans_type <TRANSFORMER_TYPE> \
+  --weights <WEIGHTS_PATH> \
+  --patch_size <PATCH_SIZE>
 ```
-
-
-## Loss landscape analysis
-
+Step 2: plot Hessian figure.
 ```bash
-python loss_landscape_analysis.py --model proposed --dataset_name hu --epoch 300 --bs 64 --ratio 0.1 --trans_type 0 --weights ./checkpoints/proposed/hu
+python kernel_density_estimation.py --hessian_csv_path <PATH_TO_HESSIAN_CSV>
 ```
 
 ## Acknowledgment
-Our implementation is mainly based on the following codebases and paper. We gratefully thank the authors for their wonderful works.
+Our implementation is mainly based on the following codebases and paper. We gratefully thank the authors for their excellent work.
 
 1: https://github.com/amirgholami/PyHessian
 
 2: https://github.com/MeiShaohui/Group-Aware-Hierarchical-Transformer
-
 
 3: https://github.com/xxxnell/how-do-vits-work
 

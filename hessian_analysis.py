@@ -9,20 +9,16 @@ import argparse
 import seaborn as sns
 import numpy as np
 from utils.dataset import load_mat_hsi
-from models.get_model import get_model
 from train import test
 from utils.utils import metrics, show_results
 import imageio
 from utils.dataset import load_mat_hsi, sample_gt, HSIDataset
 from utils.utils import split_info_print, metrics, show_results
-from utils.scheduler import load_scheduler
-from models.get_model import get_model
 from train import train, test
 from timm.loss import LabelSmoothingCrossEntropy
-from timm.data import Mixup
 from timm.loss import SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
-
-
+from models.proposed import proposed
+import torch.optim as optim
 import math
 import numpy as np
 import pandas as pd
@@ -33,25 +29,6 @@ import time
 from pyhessian import hessian
 from tqdm import tqdm
 from pathlib import Path
-
-
-# def one_hot(x, num_classes, on_value=1., off_value=0., device='cuda'):
-#     x = x.long().view(-1, 1)
-#     return torch.full((x.size()[0], num_classes), off_value, device=device).scatter_(1, x, on_value)
-
-
-# def mixup_target(target, num_classes, lam=1., smoothing=0.0, device='cuda'):
-#     off_value = smoothing / num_classes
-#     on_value = 1. - smoothing + off_value
-#     y1 = one_hot(target, num_classes, on_value=on_value, off_value=off_value, device=device)
-#     y2 = one_hot(target.flip(0), num_classes, on_value=on_value, off_value=off_value, device=device)
-#     return y1 * lam + y2 * (1. - lam)
-
-
-# mixup_function = 1 
-
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="HSI Hessian matrics")
@@ -72,11 +49,6 @@ if __name__ == "__main__":
     parser.add_argument('--disjoint', action='store_false')  # disjoint the training patch and testing patch  
 
     opts = parser.parse_args()
-
-    # device = torch.device("cuda:{}".format(opts.device))
-
-    # print parameters
-    # print("experiments will run on GPU device {}".format(opts.device))
     print("model = {}".format(opts.model))    
     print("dataset = {}".format(opts.dataset_name))
     print("dataset folder = {}".format(opts.dataset_dir))
@@ -90,95 +62,44 @@ if __name__ == "__main__":
         print("{} for training with disjoint sampling".format(opts.ratio))
     else:
         print("{} for training, {} for validation and {} testing with random setting".format(opts.ratio / 2, opts.ratio / 2, 1 - opts.ratio))
-
     # load data
     image, gt, labels = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
-
-    # ###### houston dataset with training and testing split in advance
-    # # load training + validation dataset (TR_label.mat)
-    # image, gt_TR_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TRLabel.mat", mat_name = 'TRLabel')
-
-    # # load training + validation dataset (TR_label.mat)
-    # image, gt_TS_label, _ = load_mat_hsi(opts.dataset_name, opts.dataset_dir, gt_file = "TSLabel.mat", mat_name = 'TSLabel')
-    # ###### houston dataset with training and testing split in advance
-
-
     num_classes_la = len(labels)
     num_bands = image.shape[-1]
-    # mixup_function = Mixup(num_classes=num_classes_la, mixup_alpha=1.0, cutmix_alpha=0.8, prob=1.0, label_smoothing=opts.smoothing)
     mixup_function =None
-
-
-
-    # random seeds
-    # seeds = [1, 11, 21, 31, 41]
     seeds = [1, 11, 21, 31, 41]
-
     # empty list to storing results
     results = []
-
-
-
     metric_output_dir = "./outout_metrics/" + opts.model + '/' + opts.dataset_name 
-
     if opts.model == 'proposed':
         metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_' + 'trans_type:' + str(opts.trans_type) + '_metric_output_hessian.txt'
     else:
         metric_output_filename = str(training_split) + '_' + 'disjoint:' + str(opts.disjoint) + '_metric_output.txt'
-
-
-
-
     if not os.path.isdir(metric_output_dir):
         os.makedirs(metric_output_dir, exist_ok=True)
-
     output_metric_result = os.path.join(metric_output_dir, metric_output_filename)
-
     with open(output_metric_result, 'w') as x_file:
-
         for run in range(opts.num_run):
             np.random.seed(seeds[run])
             print("running an experiment with the {} model".format(opts.model))
             print("run {} / {}".format(run+1, opts.num_run))
-
             x_file.write("run {} / {}".format(run+1, opts.num_run))
             x_file.write('\n')            
-
-
             trainval_gt, test_gt = sample_gt(gt, opts.ratio, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
             train_gt, val_gt = sample_gt(trainval_gt, 0.5, seeds[run], disjoint=opts.disjoint, window_size=opts.patch_size//2)
             del trainval_gt
-
             train_set = HSIDataset(image, train_gt, patch_size=opts.patch_size, data_aug=True)
             val_set = HSIDataset(image, val_gt, patch_size=opts.patch_size, data_aug=False)
-
             train_loader = torch.utils.data.DataLoader(train_set, opts.bs, drop_last=True, shuffle=True)
             val_loader = torch.utils.data.DataLoader(val_set, opts.bs, drop_last=True, shuffle=False)
-
             # load model and loss
-            model = get_model(opts.model, opts.dataset_name, opts.patch_size, opts.trans_type)
-
+            model = proposed(opts.dataset_name, opts.patch_size, opts.trans_type)
             if run == 0:
-                split_info_print(train_gt, val_gt, test_gt, labels)
-                # print("network information:")
-                # with torch.no_grad():
-                #     summary(model, torch.zeros((3, 1, num_bands, opts.patch_size, opts.patch_size)))
-            
-
+                split_info_print(train_gt, val_gt, test_gt, labels)          
             model.load_state_dict(torch.load(os.path.join(opts.weights, str(opts.epoch), str(opts.trans_type), str(opts.ratio), str(run), 'model_best.pth')))
             map_location = "cuda" if torch.cuda.is_available() else "cpu"
             model = model.to(map_location)
-            
-            optimizer, scheduler = load_scheduler(opts.model, model)
-
-            # if opts.smoothing:
-            #     criterion = LabelSmoothingCrossEntropy(smoothing=opts.smoothing)
-            # else:
-            #     criterion = nn.CrossEntropyLoss()
-
-
-
-
+            optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0001)
             if mixup_function is not None:
                 loss_function = SoftTargetCrossEntropy()
             elif opts.smoothing > 0.0:
@@ -186,73 +107,19 @@ if __name__ == "__main__":
             else:
                 loss_function = nn.CrossEntropyLoss()
             loss_function = loss_function.cuda() if torch.cuda.is_available() else loss_function
-
             criterion = loss_function
-
-
-
-
             start_time = time.time()
             max_eigens = []  # a list of batch-wise top-k hessian max eigenvalues
             model = model.cuda()
             # i = 0
             dataset_train = train_loader
             weight_decay = 0.0001
-
-            # if model_name == 'm3ddcnn':
-            #     weight_decay=0.01
-
-            # elif model_name == 'cnn3d':
-            #     weight_decay=0.0005
-
-            # elif model_name == 'rssan':
-            #     weight_decay=0.0
-
-            # elif model_name == 'ablstm':
-            #     weight_decay=0.0005
-
-            # elif model_name == 'dffn':
-            #     weight_decay=0.0001
-
-            # elif model_name == 'speformer':
-            #     weight_decay=0.0
-
-            # elif model_name == 'ssftt':
-            #     weight_decay=0.0
-
-            # elif model_name == 'group_transformer':
-            #     weight_decay=0.0001
-
-            # elif model_name == 'proposed':
-                # weight_decay=0.0001
-
-
             for xs, ys in tqdm(dataset_train):
-                # print("ys shape = ", ys.shape)
-
-                # transform the ys form to one-hot vector
-                print("xs shape = ", xs.shape)
-                print("ys shape = ", ys.type())
-                # ys = mixup_target(ys, num_classes, lam=1., smoothing=opts.smoothing, device=xs.device)
                 if mixup_function is not None:
                     xs, ys = mixup_function(xs, ys)
-
-                # xs = xs.squeeze(1)
-
-                print("xs shape after transform = ", xs.shape)
-                print("ys shape after transform = ", ys.shape)
-                
-                
-                # print("ys shape after transform = ", ys.shape)
-                # if i <= 4:
                 hessian_comp = hessian(model, criterion, data=(xs, ys), weight_decay=weight_decay, cuda=True)  # measure hessian max eigenvalues with NLL + L2 on data augmented (`transform`) datasets
-                top_eigenvalues, top_eigenvector = hessian_comp.eigenvalues(top_n=10)  # collect top-5 hessian eigenvaues by using power-iteration (https://en.wikipedia.org/wiki/Power_iteration)
-                max_eigens = max_eigens + top_eigenvalues  # aggregate top-5 max eigenvalues
-                    # i = i + 1
-                # else:
-                #     break
-
-
+                top_eigenvalues, top_eigenvector = hessian_comp.eigenvalues(top_n=10)  # collect top-10 hessian eigenvaues by using power-iteration (https://en.wikipedia.org/wiki/Power_iteration)
+                max_eigens = max_eigens + top_eigenvalues  # aggregate top-10 max eigenvalues
     end_time = time.time()
     time_consume = end_time-start_time
     print("Calulation time：%s" %time_consume)
