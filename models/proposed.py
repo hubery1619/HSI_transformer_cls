@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.modules.odconv import ODConv2d
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from timm.models.layers import DropPath, trunc_normal_
 import numpy as np
 import math
-from models.attention_module import *
 
 
 class Mlp(nn.Module):
@@ -638,7 +636,6 @@ class TokenEmbedding(nn.Module):
         super().__init__()
         self.ifm_size = in_feature_map_size
         self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
-        # self.proj = ODConv2d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1, groups=n_groups)
         self.batch_norm = nn.BatchNorm2d(embed_dim)
         self.relu = nn.ReLU(inplace=True)
         self.patch_norm_flag = patch_norm_flag
@@ -665,7 +662,7 @@ class TokenEmbedding(nn.Module):
 
 
 
-class HyperTransformer(nn.Module):
+class HSITransformer(nn.Module):
     def __init__(self, img_size=224, block_type=0, in_chans=3, num_classes=1000, num_stages=4, 
                 n_groups=[32, 32, 32, 32], embed_dims=[256, 128, 64, 32], num_heads_channel=[8, 4, 2, 2], num_heads_spatial=[1, 1, 1, 1], mlp_ratios=[1, 1, 1, 1], depths=[2, 2, 2, 2], qkv_bias=True, ape=False, patch_norm=False, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1):
         super().__init__()
@@ -761,11 +758,11 @@ class HyperTransformer(nn.Module):
 
 def proposed(dataset, patch_size, trans_type):
     if dataset == 'hu':
-        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[3, 2, 4, 2], embed_dims=[96, 64, 32, 32], num_heads_spatial=[2, 2, 2, 2])
+        model = HSITransformer(img_size=patch_size, block_type = trans_type, in_chans=144, num_classes=15, n_groups=[1, 1, 1, 1], depths=[3, 2, 4, 2], embed_dims=[96, 64, 32, 32], num_heads_spatial=[2, 2, 2, 2])
     elif dataset == 'bot':
-        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=145, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2], embed_dims=[128, 64, 32, 16], num_heads_spatial=[2, 2, 2, 2])
+        model = HSITransformer(img_size=patch_size, block_type = trans_type, in_chans=145, num_classes=14, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2], embed_dims=[128, 64, 32, 16], num_heads_spatial=[2, 2, 2, 2])
     elif dataset == 'pu':
-        model = HyperTransformer(img_size=patch_size, block_type = trans_type, in_chans=103, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2], embed_dims=[128, 64, 32, 16], num_heads_spatial=[8, 8, 8, 8])
+        model = HSITransformer(img_size=patch_size, block_type = trans_type, in_chans=103, num_classes=9, n_groups=[1, 1, 1, 1], depths=[2, 2, 6, 2], embed_dims=[128, 64, 32, 16], num_heads_spatial=[8, 8, 8, 8])
     return model
 
 if __name__ == "__main__":

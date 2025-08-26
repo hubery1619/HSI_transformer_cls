@@ -13,7 +13,7 @@ import torchvision.transforms as transforms
 
 from timm.loss import SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
 
-import ops.meters as meters
+import landscape_op.meters as meters
 
 
 @torch.no_grad()

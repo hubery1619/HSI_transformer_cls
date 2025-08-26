@@ -29,11 +29,10 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import time
 
-from pyhessian import hessian
 from tqdm import tqdm
 from pathlib import Path
-import ops.tests as tests
-import ops.loss_landscapes as lls
+import landscape_op.tests as tests
+import landscape_op.loss_landscapes as lls
 import torch.nn as nn
 import torch.optim as optim
 

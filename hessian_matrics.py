@@ -9,18 +9,17 @@ import argparse
 import seaborn as sns
 import numpy as np
 from utils.dataset import load_mat_hsi
-from models.get_model import get_model
 from train import test
 from utils.utils import metrics, show_results
 import imageio
 from utils.dataset import load_mat_hsi, sample_gt, HSIDataset
 from utils.utils import split_info_print, metrics, show_results
-from utils.scheduler import load_scheduler
-from models.get_model import get_model
 from train import train, test
 from timm.loss import LabelSmoothingCrossEntropy
 from timm.data import Mixup
 from timm.loss import SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
+from models.proposed import proposed
+import torch.optim as optim
 
 
 import math
@@ -151,7 +150,7 @@ if __name__ == "__main__":
             val_loader = torch.utils.data.DataLoader(val_set, opts.bs, drop_last=True, shuffle=False)
 
             # load model and loss
-            model = get_model(opts.model, opts.dataset_name, opts.patch_size, opts.trans_type)
+            model = proposed(opts.dataset_name, opts.patch_size, opts.trans_type)
 
             if run == 0:
                 split_info_print(train_gt, val_gt, test_gt, labels)
@@ -164,7 +163,7 @@ if __name__ == "__main__":
             map_location = "cuda" if torch.cuda.is_available() else "cpu"
             model = model.to(map_location)
             
-            optimizer, scheduler = load_scheduler(opts.model, model)
+            optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0001)
 
             # if opts.smoothing:
             #     criterion = LabelSmoothingCrossEntropy(smoothing=opts.smoothing)

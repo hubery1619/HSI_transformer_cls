@@ -11,14 +11,9 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
     """ load HSI.mat dataset """
     # available sets
     available_sets = [
-        'sa',
         'pu',
-        'whulk',
-        'hrl',
         'hu',
         'bot',
-        'indian',
-        'ksc',
     ]
     assert dataset_name in available_sets, "dataset should be one of" + ' ' + str(available_sets)
 
@@ -26,35 +21,7 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
     gt = None
     labels = None
 
-    if (dataset_name == 'sa'):
-        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "Salinas_corrected.mat"))
-        image = image['salinas_corrected']
-        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "Salinas_gt.mat"))
-        gt = gt['salinas_gt']
-        labels = [
-            "Undefined",
-            "Brocoli_green_weeds_1",
-            "Brocoli_green_weeds_2",
-            "Fallow",
-            "Fallow_rough_plow",
-            "Fallow_smooth",
-            "Stubble",
-            "Celery",
-            "Grapes_untrained",
-            "Soil_vinyard_develop",
-            "Corn_senesced_green_weeds",
-            "Lettuce_romaine_4wk",
-            "Lettuce_romaine_5wk",
-            "Lettuce_romaine_6wk",
-            "Lettuce_romaine_7wk",
-            "Vinyard_untrained",
-            "Vinyard_vertical_trellis",
-        ]
-        rgb_bands = [0, 1, 2]  # to be edited
-        undefined_label_index = 0
-
-
-    elif (dataset_name == 'hu'):
+    if (dataset_name == 'hu'):
         image = io.loadmat(os.path.join(dataset_dir, dataset_name, "HU_cube.mat"))
         image = image['HU_cube']
         gt = io.loadmat(os.path.join(dataset_dir, dataset_name, gt_file))
@@ -80,35 +47,6 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
         rgb_bands = [0, 1, 2]  # to be edited
         undefined_label_index = 0
 
-
-    elif (dataset_name == 'indian'):
-        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "Indian_pines_corrected.mat"))
-        image = image['indian_pines_corrected']
-        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "Indian_pines_gt.mat"))
-        gt = gt['indian_pines_gt']
-        labels = [
-            "Undefined",
-            "Alfalfa",
-            "Corn-notill",
-            "Corn-mintill",
-            "Corn",
-            "Grass-pasture",
-            "Grass-trees",
-            "Grass-pasture-mowed",
-            "Hay-windrowed",
-            "Oats",
-            "Soybean-notill",
-            "Soybean-mintill",
-            "Soybean-clean",
-            "Wheat",
-            "Woods",
-            "Buildings-Grass-Trees-Drives",
-            "Stone-Steel-Towers",
-        ]
-        rgb_bands = [0, 1, 2]  # to be edited
-        undefined_label_index = 0
-
-
     elif (dataset_name == 'pu'):
         image = io.loadmat(os.path.join(dataset_dir, dataset_name, "PaviaU.mat"))
         image = image['paviaU']
@@ -125,77 +63,6 @@ def load_mat_hsi(dataset_name, dataset_dir, gt_file = "gt.mat", mat_name = 'gt')
             "Bitumen",
             "Self-Blocking Bricks",
             "Shadows",
-        ]
-        rgb_bands = [0, 1, 2]  # to be edited
-        undefined_label_index = 0
-
-
-    elif (dataset_name == 'ksc'):
-        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "KSC.mat"))
-        image = image['KSC']
-        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "KSC_gt.mat"))
-        gt = gt['KSC_gt']
-        labels = [
-            "Undefined",
-            "Scrub", 
-            "Willow swamp",
-            "Cabbage palm hammock", 
-            "Cabbage palm/oak hammock",
-            "Slash pine", 
-            "Oak/broadleaf hammock",
-            "Hardwood swamp", 
-            "Graminoid marsh", 
-            "Spartina marsh",
-            "Cattail marsh", 
-            "Salt marsh", 
-            "Mud flats", 
-            "Water"
-        ]
-        rgb_bands = [0, 1, 2]  # to be edited
-        undefined_label_index = 0
-
-
-    elif (dataset_name == 'whulk'):
-        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "WHU_Hi_LongKou.mat"))
-        image = image['WHU_Hi_LongKou']
-        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "WHU_Hi_LongKou_gt.mat"))
-        gt = gt['WHU_Hi_LongKou_gt']
-        labels = [
-            'Undefined',
-            'Corn',
-            'Cotton',
-            'Sesame',
-            'Broad-leaf soybean',
-            'Narrow-leaf soybean',
-            'Rice',
-            'Water',
-            'Roads and houses',
-            'Mixed weed',
-        ]
-        rgb_bands = [0, 1, 2]  # to be edited
-        undefined_label_index = 0
-
-    elif (dataset_name == 'hrl'):
-        image = io.loadmat(os.path.join(dataset_dir, dataset_name, "Loukia.mat"))
-        image = image['loukia']
-        gt = io.loadmat(os.path.join(dataset_dir, dataset_name, "Loukia_GT.mat"))
-        gt = gt['loukia_gt']
-        labels = [
-            'Undefined',
-            'Dense Urban Fabric',
-            'Mineral Extraction Sites',
-            'Non Irrigated Arable Land',
-            'Fruit Trees',
-            'Olive Groves',
-            'Broad-leaved Forest',
-            'Coniferous Forest',
-            'Mixed Forest',
-            'Dense Sclerophyllous Vegetation',
-            'Sparce Sclerophyllous Vegetation',
-            'Sparcely Vegetated Areas',
-            'Rocks and Sand',
-            'Water',
-            'Coastal Water'
         ]
         rgb_bands = [0, 1, 2]  # to be edited
         undefined_label_index = 0
@@ -272,18 +139,7 @@ def sample_gt(gt, percentage, seed, disjoint=True, window_size=3):
 
 ###modify the code
     if disjoint:
-        print(gt.shape)
-
         img_height, img_width = gt.shape
-        # window_size = 3
-        # train_indices_indx0 = train_indices[1][0]
-        # train_indices_indy0 = train_indices[1][1]
-        # print(train_indices_indx0)
-        # print(train_indices_indy0)
-
-        # x_low = max(0, train_indices_indx0-3)
-        # x_high = min(img_height, train_indices_indx0+3)
-
         neighbor_point = []
         Train_len = len(train_indices)
         Test_len = len(test_indices)
@@ -295,34 +151,15 @@ def sample_gt(gt, percentage, seed, disjoint=True, window_size=3):
             y_range = list(range(max(0, train_indices_indy0-window_size), min(img_height-1, train_indices_indy0+window_size)+1))
             for item in itertools.product(x_range, y_range):
                 neighbor_point.append(item)
-
         neighbor_point_set = neighbor_point[0]
-
-        # train_indices_set = set(train_indices)
-        # test_indices_set = set(test_indices)
-        # inter_result = test_indices_set.intersection(neighbor_point_set)
-
         res = set(neighbor_point) & set(test_indices)
-
         result = list(set(test_indices) - res)
         test_indices = result
 
-
-#####################modify the code#####################
-
-
     train_indices = [list(t) for t in zip(*train_indices)]
     test_indices = [list(t) for t in zip(*test_indices)]
-    x1 = test_indices[0]
-    x2 = test_indices[1]
-    x3 = tuple(train_indices)
-
-
-
     train_gt[tuple(train_indices)] = gt[tuple(train_indices)]
     test_gt[tuple(test_indices)] = gt[tuple(test_indices)]
-
-
     return train_gt, test_gt
 
 
